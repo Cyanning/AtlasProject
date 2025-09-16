@@ -1,0 +1,133 @@
+using UnityEngine;
+using UnityEngine.UI;
+using System;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+
+namespace Plugins.C_
+{
+    [Serializable]
+    public class BoneMaps
+    {
+        public Texture2D essence;
+        public Dictionary<int, Texture2D> Invisible = new ();
+        public Dictionary<int, Texture2D> Displayed = new ();
+    }
+
+    public class BoneMarkManager : MonoBehaviour
+    {
+        public int markType;
+        public Button changeBonesBtn;
+
+        private Material[] _materialChanged;
+        private Dictionary<string, BoneMaps> _textures;
+        private readonly int _shaderIDBgcolor = Shader.PropertyToID("bs");
+        private readonly int _shaderIDTranslucent = Shader.PropertyToID("_bskg");
+        private readonly int _shaderIDTexDisplayed = Shader.PropertyToID("_albe");
+        private readonly int _shaderIDTexInvisible = Shader.PropertyToID("_zzao");
+
+        private void Start()
+        {
+            changeBonesBtn.onClick.AddListener(SettingBonemarkMode);
+        }
+
+        private void SettingBonemarkMode()
+        {
+            if (markType is >= 0 and < 4)
+            {
+                markType++;
+                if (_materialChanged == null || _materialChanged.Length == 0)
+                {
+                    GetMaterialChanged();
+                }
+                ChangeMapsForBone();
+            }
+            else
+            {
+                markType = 0;
+                RecoverMapsForBone();
+            }
+        }
+
+        private void GetMaterialChanged()
+        {
+            var materials = new HashSet<Material>();
+            foreach (var obj in gameObject.GetComponent<ClickEvent>().mObj.GetComponentsInChildren<Transform>())
+            {
+                if (obj.childCount > 0) continue;
+                var material = obj.GetComponent<Renderer>().material;
+                if (!material.name.StartsWith("Guge")) continue;
+                materials.Add(material);
+            }
+
+            if (materials.Count == 0) return;
+            _materialChanged = materials.ToArray();
+            _textures = new Dictionary<string, BoneMaps>();
+
+        }
+
+        private void ChangeMapsForBone()
+        {
+            foreach (var material in _materialChanged)
+            {
+                var markName = GetMarkName(material);
+                if (!_textures.ContainsKey(markName)) GetSeriesMapsforMaterial(markName);
+
+                material.shader = Shader.Find("ame3");
+                material.SetColor(_shaderIDBgcolor, Color.white);
+                material.SetInt(_shaderIDTranslucent, 1);
+                material.SetTexture(_shaderIDTexInvisible, _textures[markName].Invisible[markType]);
+                material.SetTexture(_shaderIDTexDisplayed, _textures[markName].Displayed[markType]);
+            }
+        }
+
+        private void RecoverMapsForBone()
+        {
+            foreach (var material in _materialChanged)
+            {
+                var markName = GetMarkName(material);
+                if (!_textures.ContainsKey(markName)) GetSeriesMapsforMaterial(markName);
+
+                material.shader = Shader.Find("ameop");
+                material.SetTexture(_shaderIDTexDisplayed, _textures[markName].essence);
+            }
+        }
+
+        private static string GetMarkName(UnityEngine.Object material)
+        {
+            return material.name.EndsWith(" (Instance)") ? material.name[..^11] : material.name;
+        }
+
+        private void GetSeriesMapsforMaterial(string markName)
+        {
+            _textures.Add(markName, new BoneMaps());
+
+            var mapPath = Path.Combine(Application.dataPath, $"model/Maps/Guge/{markName}.jpg");
+            if (File.Exists(mapPath))
+            {
+                var texE = new Texture2D(1, 1);
+                texE.LoadImage(File.ReadAllBytes(mapPath));
+                _textures[markName].essence = texE;
+            }
+
+            for (var i = 1; i < 5; i++)
+            {
+                var mapInvisiblePath = Path.Combine(
+                    Application.dataPath, $"model/Maps/bone_mark_maps/{markName}_mark{i}.png");
+                var mapDisplayedPath = Path.Combine(
+                    Application.dataPath, $"model/Maps/bone_mark_maps/{markName}_mark{i}_cover.png");
+
+                if (!File.Exists(mapInvisiblePath) || !File.Exists(mapDisplayedPath)) continue;
+
+                var texI = new Texture2D(1, 1);
+                texI.LoadImage(File.ReadAllBytes(mapInvisiblePath));
+                _textures[markName].Invisible[i] = texI;
+
+                var texD = new Texture2D(1, 1);
+                texD.LoadImage(File.ReadAllBytes(mapDisplayedPath));
+                _textures[markName].Displayed[i] = texD;
+            }
+        }
+    }
+}
