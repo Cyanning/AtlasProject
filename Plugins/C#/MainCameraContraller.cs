@@ -13,7 +13,7 @@ namespace Plugins.C_
         private void Start()
         {
             _cam = GetComponent<Camera>();
-            _canvas = GameObject.Find("Canvas");
+            _canvas = GameObject.FindGameObjectWithTag("GameController");
         }
 
 

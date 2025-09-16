@@ -277,7 +277,6 @@ namespace Plugins.C_
             mObj = Instantiate(myLoadedAssetBundle.LoadAsset<GameObject>(modelPrefabName));
 
             fileStream.Close();
-            fileStream = null;
             //Debug.Log("模型路径为end: mObj = " + mObj == null);
 
             //go = GameObject.Find(modelPrefabName);

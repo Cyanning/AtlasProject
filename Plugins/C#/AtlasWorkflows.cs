@@ -21,40 +21,63 @@ namespace Plugins.C_
         public string atlasName;
         public List<PairLocaltion> labelMatrix;
 
-        public Text infoPanel;
-        public Button setLeftBtn;
-        public Button setRightBtn;
-        public Button changeGroupBtn;
-        public Button createGroupsBtn;
-        public Button saveAtlasBtn;
-        public Button getAtlasCarmeraBtn;
-        public Button saveAtlasCarmeraBtn;
+        private Text _infoPanel;
+        // private List<Button> _interfaceButtons;
 
-        private MainCameraContraller _camCtrl;
         private int _activeGroupIndex;
         private List<AtlasLableGroup> _groups;
         private AtlasLable _activeLable;
+        private MainCameraContraller _camCtrl;
 
         private readonly HashSet<string> _validRoots = new()
         {
-            "BodyMaleStatic", "BodyFemaleStatic", "ForamensMale", "ForamensFemale"
+            "BodyMaleStatic(Clone)", "BodyFemaleStatic(Clone)", "ForamensMale(Clone)", "ForamensFemale(Clone)"
         };
 
         private void Start()
         {
             //按钮绑定事件
-            setLeftBtn.onClick.AddListener(SetPoiontAsLeft);
-            setRightBtn.onClick.AddListener(SetPoiontAsRight);
-            changeGroupBtn.onClick.AddListener(ChangeGroup);
-            createGroupsBtn.onClick.AddListener(CreateGroups);
-            saveAtlasBtn.onClick.AddListener(SaveAtlas);
-            getAtlasCarmeraBtn.onClick.AddListener(GetAtlasCarmera);
-            saveAtlasCarmeraBtn.onClick.AddListener(SaveAtlasCarmera);
+            for (var i = 0; i < transform.childCount; i++)
+            {
+                var userInterface = transform.GetChild(i);
+                switch (userInterface.name)
+                {
+                    case "SetLeftBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(SetPoiontAsLeft);
+                        break;
+                    case "SetRightBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(SetPoiontAsRight);
+                        break;
+                    case "ChangeGroupBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(ChangeGroup);
+                        break;
+                    case "CreateGroupsBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(CreateGroups);
+                        break;
+                    case "ChangeBonesBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(ChangeBones);
+                        break;
+                    case "SaveAtlasBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(SaveAtlas);
+                        break;
+                    case "GetAtlasCarmeraBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(GetAtlasCarmera);
+                        break;
+                    case "SaveAtlasCarmeraBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(SaveAtlasCarmera);
+                        break;
+                    case "LableInfo":
+                        _infoPanel = userInterface.GetComponent<Text>();
+                        break;
+                }
+            }
 
+            // 绑定主相机脚本
+            _camCtrl = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<MainCameraContraller>();
+
+            // 初始化数据
             labelMatrix = new List<PairLocaltion>();
             _groups = new List<AtlasLableGroup>();
-
-            _camCtrl = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<MainCameraContraller>();
 
             // 读取点文件
             var dataPath = Path.Combine(Application.dataPath, $"Atlas_database/Atlas_{atlasName}_lables");
@@ -91,11 +114,9 @@ namespace Plugins.C_
             );
         }
 
-        // 传入射线坐标
-        public void Clicked(RaycastHit raycast)
+        public void Clicked(RaycastHit raycast) // 传入射线坐标
         {
             var clickedModel = raycast.transform;
-            Debug.Log(clickedModel);
 
             if (!_validRoots.Contains(clickedModel.root.name)) return;
             var raycastPoint = raycast.point;
@@ -198,6 +219,15 @@ namespace Plugins.C_
             UpdateInfoPanel();
         }
 
+        private void ChangeBones()
+        {
+            var markManager = gameObject.GetComponent<BoneMarkManager>();
+            if (markManager.SettingBonemarkMode() == 1)
+            {
+
+            }
+        }
+
         private void SaveAtlas()
         {
             if (_groups.Count == 0 || labelMatrix.Count == 0) return;
@@ -268,7 +298,7 @@ namespace Plugins.C_
                            $"Z: {_activeLable.pointPositionZ}";
             }
 
-            infoPanel.text = content;
+            _infoPanel.text = content;
         }
 
         private int[] GetLocaltionOrderNum()

@@ -1,9 +1,9 @@
 using UnityEngine;
-using UnityEngine.UI;
 using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using Plugins.C_.models;
 
 namespace Plugins.C_
 {
@@ -17,9 +17,7 @@ namespace Plugins.C_
 
     public class BoneMarkManager : MonoBehaviour
     {
-        public int markType;
-        public Button changeBonesBtn;
-
+        private int _markType;
         private Material[] _materialChanged;
         private Dictionary<string, BoneMaps> _textures;
         private readonly int _shaderIDBgcolor = Shader.PropertyToID("bs");
@@ -27,16 +25,14 @@ namespace Plugins.C_
         private readonly int _shaderIDTexDisplayed = Shader.PropertyToID("_albe");
         private readonly int _shaderIDTexInvisible = Shader.PropertyToID("_zzao");
 
-        private void Start()
-        {
-            changeBonesBtn.onClick.AddListener(SettingBonemarkMode);
-        }
+        private const string MaleForamensPath =  "StreamingAssets/Test/encypt_maleforamens";
+        private const string FemaleForamensPath =  "StreamingAssets/Test/encypt_femaleforamens";
 
-        private void SettingBonemarkMode()
+        public int SettingBonemarkMode()
         {
-            if (markType is >= 0 and < 4)
+            if (_markType is >= 0 and < 4)
             {
-                markType++;
+                _markType++;
                 if (_materialChanged == null || _materialChanged.Length == 0)
                 {
                     GetMaterialChanged();
@@ -45,9 +41,11 @@ namespace Plugins.C_
             }
             else
             {
-                markType = 0;
+                _markType = 0;
                 RecoverMapsForBone();
             }
+
+            return _markType;
         }
 
         private void GetMaterialChanged()
@@ -77,8 +75,8 @@ namespace Plugins.C_
                 material.shader = Shader.Find("ame3");
                 material.SetColor(_shaderIDBgcolor, Color.white);
                 material.SetInt(_shaderIDTranslucent, 1);
-                material.SetTexture(_shaderIDTexInvisible, _textures[markName].Invisible[markType]);
-                material.SetTexture(_shaderIDTexDisplayed, _textures[markName].Displayed[markType]);
+                material.SetTexture(_shaderIDTexInvisible, _textures[markName].Invisible[_markType]);
+                material.SetTexture(_shaderIDTexDisplayed, _textures[markName].Displayed[_markType]);
             }
         }
 
@@ -128,6 +126,17 @@ namespace Plugins.C_
                 texD.LoadImage(File.ReadAllBytes(mapDisplayedPath));
                 _textures[markName].Displayed[i] = texD;
             }
+        }
+
+        public void LoadForamens(string[] foramens,int gender)
+        {
+            var foramensPath = gender == 0 ? MaleForamensPath : FemaleForamensPath;
+            var fileStream = new MyStream(foramensPath, FileMode.Open, FileAccess.Read, FileShare.None, 1024 * 64, false);
+            myLoadedAssetBundle = AssetBundle.LoadFromStream(fileStream);
+
+            mObj = Instantiate(myLoadedAssetBundle.LoadAsset<GameObject>(modelPrefabName));
+
+            fileStream.Close();
         }
     }
 }
