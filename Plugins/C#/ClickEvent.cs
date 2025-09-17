@@ -152,9 +152,13 @@ namespace Plugins.C_
                 gameObject.AddComponent<StandaloneInputModule>();
             }
 
-            SetAssetsPath(TestGetData.TEST_NEW_RESOURCE_PATH);
-            SetModelPath(TestGetData.TEST_NEW_MODEL_MALE_PATH);
 
+            SetAssetsPath(TestGetData.TEST_NEW_RESOURCE_PATH);
+            SetModelPath(
+                GameObject.Find("Canvas").GetComponent<AtlasWorkflows>().GetAtlas().gender == 1
+                    ? TestGetData.TEST_NEW_MODEL_FEMALE_PATH
+                    : TestGetData.TEST_NEW_MODEL_MALE_PATH
+            );
 
             //骨性标志
             //if (TEST_PLUGIN)
@@ -289,6 +293,7 @@ namespace Plugins.C_
 
             var transforms = mObj.transform.GetComponentsInChildren<Transform>();
 
+
             var modelDisplay =
                 GameObject.Find("Canvas").GetComponent<AtlasWorkflows>().GetAtlas().modelDisplayed;
             foreach (var childTransform in transforms)
@@ -298,7 +303,6 @@ namespace Plugins.C_
                 var modelValue = GetModelValue(childTransform.name);
                 if (modelDisplay.Contains(modelValue))
                 {
-                    Debug.Log(childTransform.name);
                     AllObject.Add(modelValue, childTransform.gameObject);
                 }
                 else

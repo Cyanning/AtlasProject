@@ -20,6 +20,9 @@ namespace Plugins.C_
         public static string TEST_NEW_MODEL_MALE_PATH =
             Path.Combine(Application.dataPath, "StreamingAssets", "Test", "encypt_malemodel");
 
+        public static string TEST_NEW_MODEL_FEMALE_PATH =
+            Path.Combine(Application.dataPath, "StreamingAssets", "Test", "encypt_femalemodel");
+
         public Dictionary<string, string> AllObject;
         string nowValue = "";
 

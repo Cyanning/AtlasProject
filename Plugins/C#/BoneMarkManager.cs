@@ -11,8 +11,8 @@ namespace Plugins.C_
     public class BoneMaps
     {
         public Texture2D essence;
-        public Dictionary<int, Texture2D> Invisible = new ();
-        public Dictionary<int, Texture2D> Displayed = new ();
+        public Dictionary<int, Texture2D> Invisible = new();
+        public Dictionary<int, Texture2D> Displayed = new();
     }
 
     public class BoneMarkManager : MonoBehaviour
@@ -20,23 +20,41 @@ namespace Plugins.C_
         private int _markType;
         private Material[] _materialChanged;
         private Dictionary<string, BoneMaps> _textures;
-        private readonly int _shaderIDBgcolor = Shader.PropertyToID("bs");
-        private readonly int _shaderIDTranslucent = Shader.PropertyToID("_bskg");
-        private readonly int _shaderIDTexDisplayed = Shader.PropertyToID("_albe");
-        private readonly int _shaderIDTexInvisible = Shader.PropertyToID("_zzao");
 
-        private const string MaleForamensPath =  "StreamingAssets/Test/encypt_maleforamens";
-        private const string FemaleForamensPath =  "StreamingAssets/Test/encypt_femaleforamens";
+        private AssetBundle _foramensAsset;
+        private GameObject _foramens;
+        private ClickEvent _clickEvent;
+
+        private static readonly int ShaderIDBgcolor = Shader.PropertyToID("bs");
+        private static readonly int ShaderIDTranslucent = Shader.PropertyToID("_bskg");
+        private static readonly int ShaderIDTexDisplayed = Shader.PropertyToID("_albe");
+        private static readonly int ShaderIDTexInvisible = Shader.PropertyToID("_zzao");
+
+        private static readonly string[] ForamenPathes =
+        {
+            "StreamingAssets/Test/encypt_foramensmale", "StreamingAssets/Test/encypt_foramensfemale"
+        };
+
+        private static readonly string[] ForamenNames =
+        {
+            "ForamensMale", "ForamensFemale"
+        };
+
+        private void Start()
+        {
+            _clickEvent = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<ClickEvent>();
+        }
 
         public int SettingBonemarkMode()
         {
-            if (_markType is >= 0 and < 4)
+            if (_markType < 3)
             {
                 _markType++;
                 if (_materialChanged == null || _materialChanged.Length == 0)
                 {
                     GetMaterialChanged();
                 }
+
                 ChangeMapsForBone();
             }
             else
@@ -51,7 +69,7 @@ namespace Plugins.C_
         private void GetMaterialChanged()
         {
             var materials = new HashSet<Material>();
-            foreach (var obj in gameObject.GetComponent<ClickEvent>().mObj.GetComponentsInChildren<Transform>())
+            foreach (var obj in _clickEvent.mObj.GetComponentsInChildren<Transform>())
             {
                 if (obj.childCount > 0) continue;
                 var material = obj.GetComponent<Renderer>().material;
@@ -62,7 +80,6 @@ namespace Plugins.C_
             if (materials.Count == 0) return;
             _materialChanged = materials.ToArray();
             _textures = new Dictionary<string, BoneMaps>();
-
         }
 
         private void ChangeMapsForBone()
@@ -73,10 +90,10 @@ namespace Plugins.C_
                 if (!_textures.ContainsKey(markName)) GetSeriesMapsforMaterial(markName);
 
                 material.shader = Shader.Find("ame3");
-                material.SetColor(_shaderIDBgcolor, Color.white);
-                material.SetInt(_shaderIDTranslucent, 1);
-                material.SetTexture(_shaderIDTexInvisible, _textures[markName].Invisible[_markType]);
-                material.SetTexture(_shaderIDTexDisplayed, _textures[markName].Displayed[_markType]);
+                material.SetColor(ShaderIDBgcolor, Color.white);
+                material.SetInt(ShaderIDTranslucent, 1);
+                material.SetTexture(ShaderIDTexInvisible, _textures[markName].Invisible[_markType]);
+                material.SetTexture(ShaderIDTexDisplayed, _textures[markName].Displayed[_markType]);
             }
         }
 
@@ -88,7 +105,7 @@ namespace Plugins.C_
                 if (!_textures.ContainsKey(markName)) GetSeriesMapsforMaterial(markName);
 
                 material.shader = Shader.Find("ameop");
-                material.SetTexture(_shaderIDTexDisplayed, _textures[markName].essence);
+                material.SetTexture(ShaderIDTexDisplayed, _textures[markName].essence);
             }
         }
 
@@ -128,13 +145,37 @@ namespace Plugins.C_
             }
         }
 
-        public void LoadForamens(string[] foramens,int gender)
+        public void LoadForamens(string[] foramens, int gender)
         {
-            var foramensPath = gender == 0 ? MaleForamensPath : FemaleForamensPath;
-            var fileStream = new MyStream(foramensPath, FileMode.Open, FileAccess.Read, FileShare.None, 1024 * 64, false);
-            myLoadedAssetBundle = AssetBundle.LoadFromStream(fileStream);
+            var fileStream = new MyStream(
+                Path.Combine(Application.dataPath, ForamenPathes[gender]),
+                FileMode.Open, FileAccess.Read, FileShare.None, 1024 * 64, false
+            );
 
-            mObj = Instantiate(myLoadedAssetBundle.LoadAsset<GameObject>(modelPrefabName));
+            _foramensAsset = AssetBundle.LoadFromStream(fileStream);
+
+            _foramens = Instantiate(_foramensAsset.LoadAsset<GameObject>(ForamenNames[gender]));
+            _foramens.transform.position = _clickEvent.mObj.transform.position;
+            _foramens.transform.rotation = _clickEvent.mObj.transform.rotation;
+            _foramens.transform.localScale = _clickEvent.mObj.transform.localScale;
+
+            foreach (var foramen in _foramens.gameObject.GetComponentsInChildren<Transform>())
+            {
+                if (foramen.childCount > 0 || foramen.name[^8] != '~') continue;
+
+                var modelValue = foramen.name[^7..];
+                if (foramens.Contains(modelValue))
+                {
+                    Debug.Log(foramen.name);
+                    _clickEvent.AllObject.Add(modelValue, foramen.gameObject);
+                }
+                else
+                {
+                    foramen.gameObject.SetActive(false);
+                }
+
+                _clickEvent.AddObjectClickEvent(foramen.gameObject);
+            }
 
             fileStream.Close();
         }

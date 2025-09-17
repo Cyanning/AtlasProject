@@ -224,7 +224,7 @@ namespace Plugins.C_
             var markManager = gameObject.GetComponent<BoneMarkManager>();
             if (markManager.SettingBonemarkMode() == 1)
             {
-
+                markManager.LoadForamens(new[] { "2200121", "2200122" }, 0);
             }
         }
 

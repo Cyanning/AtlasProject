@@ -1,6 +1,4 @@
-using System;
 using UnityEngine;
-using Update = Unity.VisualScripting.Update;
 
 
 namespace Plugins.C_
