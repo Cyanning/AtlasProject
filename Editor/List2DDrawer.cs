@@ -6,7 +6,7 @@ using Plugins.C_;
 namespace Editor
 {
     [CustomPropertyDrawer(typeof(PairLocaltion))]
-    public class LocaltionDrawer : PropertyDrawer
+    public class List2DDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {

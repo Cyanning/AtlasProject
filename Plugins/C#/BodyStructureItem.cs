@@ -11,7 +11,7 @@ namespace Plugins.C_
 
         public void OnClickCubeItem(UnityEngine.EventSystems.BaseEventData data = null)
         {
-            _value = Convert.ToInt32(gameObject.name.Split("~")[^1]);
+            _value = Convert.ToInt32(gameObject.name[^7..]);
             if (_value < 1000000) return;
 
             SetSelectedState();

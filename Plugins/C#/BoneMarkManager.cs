@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using System;
 using System.IO;
 using System.Linq;
@@ -42,28 +43,35 @@ namespace Plugins.C_
 
         private void Start()
         {
+            for (var i = 0; i < transform.childCount; i++)
+            {
+                var userInterface = transform.GetChild(i);
+                if (userInterface.name == "ChangeBonesBtn")
+                {
+                    userInterface.GetComponent<Button>().onClick.AddListener(SettingBonemarkMode);
+                    break;
+                }
+            }
+
             _clickEvent = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<ClickEvent>();
         }
 
-        public int SettingBonemarkMode()
+        private void SettingBonemarkMode()
         {
             if (_markType < 3)
             {
                 _markType++;
-                if (_materialChanged == null || _materialChanged.Length == 0)
-                {
-                    GetMaterialChanged();
-                }
 
+                if (_materialChanged == null || _materialChanged.Length == 0) GetMaterialChanged();
                 ChangeMapsForBone();
+
+                if (_markType == 1 && _foramens == null) LoadForamens();
             }
             else
             {
                 _markType = 0;
                 RecoverMapsForBone();
             }
-
-            return _markType;
         }
 
         private void GetMaterialChanged()
@@ -145,28 +153,28 @@ namespace Plugins.C_
             }
         }
 
-        public void LoadForamens(string[] foramens, int gender)
+        private void LoadForamens()
         {
+            var atlas = gameObject.GetComponent<AtlasWorkflows>().GetAtlas();
             var fileStream = new MyStream(
-                Path.Combine(Application.dataPath, ForamenPathes[gender]),
+                Path.Combine(Application.dataPath, ForamenPathes[atlas.gender]),
                 FileMode.Open, FileAccess.Read, FileShare.None, 1024 * 64, false
             );
 
             _foramensAsset = AssetBundle.LoadFromStream(fileStream);
 
-            _foramens = Instantiate(_foramensAsset.LoadAsset<GameObject>(ForamenNames[gender]));
+            _foramens = Instantiate(_foramensAsset.LoadAsset<GameObject>(ForamenNames[atlas.gender]));
             _foramens.transform.position = _clickEvent.mObj.transform.position;
             _foramens.transform.rotation = _clickEvent.mObj.transform.rotation;
             _foramens.transform.localScale = _clickEvent.mObj.transform.localScale;
 
             foreach (var foramen in _foramens.gameObject.GetComponentsInChildren<Transform>())
             {
-                if (foramen.childCount > 0 || foramen.name[^8] != '~') continue;
+                if (foramen.childCount > 0 || foramen.name[^8..^5] != "~22") continue;
 
                 var modelValue = foramen.name[^7..];
-                if (foramens.Contains(modelValue))
+                if (atlas.modelDisplayed.Contains(modelValue))
                 {
-                    Debug.Log(foramen.name);
                     _clickEvent.AllObject.Add(modelValue, foramen.gameObject);
                 }
                 else

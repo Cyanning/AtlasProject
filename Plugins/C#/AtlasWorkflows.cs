@@ -22,17 +22,26 @@ namespace Plugins.C_
         public List<PairLocaltion> labelMatrix;
 
         private Text _infoPanel;
-        // private List<Button> _interfaceButtons;
 
+        private Atlas _atlas;
         private int _activeGroupIndex;
         private List<AtlasLableGroup> _groups;
         private AtlasLable _activeLable;
         private MainCameraContraller _camCtrl;
 
-        private readonly HashSet<string> _validRoots = new()
+        private static readonly HashSet<string> ValidRoots = new()
         {
             "BodyMaleStatic(Clone)", "BodyFemaleStatic(Clone)", "ForamensMale(Clone)", "ForamensFemale(Clone)"
         };
+
+        public Atlas GetAtlas()
+        {
+            if (_atlas == null)
+            {
+                LoadAtlas();
+            }
+            return _atlas;
+        }
 
         private void Start()
         {
@@ -54,9 +63,6 @@ namespace Plugins.C_
                     case "CreateGroupsBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(CreateGroups);
                         break;
-                    case "ChangeBonesBtn":
-                        userInterface.GetComponent<Button>().onClick.AddListener(ChangeBones);
-                        break;
                     case "SaveAtlasBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(SaveAtlas);
                         break;
@@ -76,11 +82,12 @@ namespace Plugins.C_
             _camCtrl = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<MainCameraContraller>();
 
             // 初始化数据
-            labelMatrix = new List<PairLocaltion>();
+            LoadAtlas();
             _groups = new List<AtlasLableGroup>();
+            labelMatrix = new List<PairLocaltion>();
 
             // 读取点文件
-            var dataPath = Path.Combine(Application.dataPath, $"Atlas_database/Atlas_{atlasName}_lables");
+            var dataPath = Path.Combine(Application.dataPath, $"Atlas_database/Atlas_{_atlas.name}_lables");
             if (Directory.Exists(dataPath))
             {
                 foreach (var filepath in Directory.EnumerateFiles(dataPath)) // 读取历史数据
@@ -107,18 +114,11 @@ namespace Plugins.C_
             Debug.Log("数据初始化完成");
         }
 
-        public Atlas GetAtlas()
-        {
-            return JsonUtility.FromJson<Atlas>(
-                File.ReadAllText(Path.Combine(Application.dataPath, $"Atlas_database/atlas_{atlasName}.json"))
-            );
-        }
-
         public void Clicked(RaycastHit raycast) // 传入射线坐标
         {
             var clickedModel = raycast.transform;
 
-            if (!_validRoots.Contains(clickedModel.root.name)) return;
+            if (!ValidRoots.Contains(clickedModel.root.name)) return;
             var raycastPoint = raycast.point;
 
             var prefabNames = clickedModel.name.Split("~");
@@ -219,15 +219,6 @@ namespace Plugins.C_
             UpdateInfoPanel();
         }
 
-        private void ChangeBones()
-        {
-            var markManager = gameObject.GetComponent<BoneMarkManager>();
-            if (markManager.SettingBonemarkMode() == 1)
-            {
-                markManager.LoadForamens(new[] { "2200121", "2200122" }, 0);
-            }
-        }
-
         private void SaveAtlas()
         {
             if (_groups.Count == 0 || labelMatrix.Count == 0) return;
@@ -237,7 +228,7 @@ namespace Plugins.C_
             {
                 File.WriteAllText(
                     Path.Combine(
-                        Application.dataPath, $"Atlas_database/Atlas_{atlasName}_lables/No_{i}_Group_lables.json"
+                        Application.dataPath, $"Atlas_database/Atlas_{_atlas.name}_lables/No_{i}_Group_lables.json"
                     ),
                     JsonUtility.ToJson(_groups[i])
                 );
@@ -248,21 +239,35 @@ namespace Plugins.C_
             Debug.Log("图谱存储成功");
         }
 
+        private void LoadAtlas()
+        {
+            try
+            {
+                _atlas = JsonUtility.FromJson<Atlas>(
+                    File.ReadAllText(Path.Combine(Application.dataPath, $"Atlas_database/atlas_{atlasName}.json"))
+                );
+                atlasName = _atlas.name;
+            }
+            catch (FileNotFoundException)
+            {
+                Debug.Log($"没有发现 {atlasName} 的数据文件");
+            }
+        }
+
         private void SaveAtlasCarmera()
         {
-            var atlas = GetAtlas();
             var pos = _camCtrl.GetMainCameraPostion();
             var rot = _camCtrl.GetMainCameraRotation();
-            atlas.cameraPositionX = pos.x;
-            atlas.cameraPositionY = pos.y;
-            atlas.cameraPositionZ = pos.z;
-            atlas.cameraRotationX = rot.x;
-            atlas.cameraRotationY = rot.y;
-            atlas.cameraRotationZ = rot.z;
+            _atlas.cameraPositionX = pos.x;
+            _atlas.cameraPositionY = pos.y;
+            _atlas.cameraPositionZ = pos.z;
+            _atlas.cameraRotationX = rot.x;
+            _atlas.cameraRotationY = rot.y;
+            _atlas.cameraRotationZ = rot.z;
 
             File.WriteAllText(
-                Path.Combine(Application.dataPath, $"Atlas_database/Atlas_{atlasName}.json"),
-                JsonUtility.ToJson(atlas)
+                Path.Combine(Application.dataPath, $"Atlas_database/Atlas_{_atlas.name}.json"),
+                JsonUtility.ToJson(_atlas)
             );
             Debug.Log("图谱初始视角已设置");
         }
@@ -270,10 +275,9 @@ namespace Plugins.C_
         private void GetAtlasCarmera()
         {
             // 设置初始视角
-            var atlas = GetAtlas();
             _camCtrl.SetCameraTransform(
-                atlas.cameraPositionX, atlas.cameraPositionY, atlas.cameraPositionZ,
-                atlas.cameraRotationX, atlas.cameraRotationY, atlas.cameraRotationZ
+                _atlas.cameraPositionX, _atlas.cameraPositionY, _atlas.cameraPositionZ,
+                _atlas.cameraRotationX, _atlas.cameraRotationY, _atlas.cameraRotationZ
             );
         }
 

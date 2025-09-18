@@ -7,10 +7,11 @@ namespace Plugins.C_.models
     [Serializable]
     public class Atlas
     {
+        public string name;
         public int gender;
         public int boneMarkType;
-        public List<string> modelDisplayed;
-        public List<string> modelTranslucent;
+        public string[] modelDisplayed;
+        public string[] modelTranslucent;
         public float cameraPositionX;
         public float cameraPositionY;
         public float cameraPositionZ;
