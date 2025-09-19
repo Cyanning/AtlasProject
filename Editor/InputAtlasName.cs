@@ -8,7 +8,7 @@ namespace Editor
     public class InputAtlasName : EditorWindow
     {
         private Atlas _atlas;
-        private readonly string[] _boneMarkClasses = { "不开启", "部位", "表面", "标志" };
+        private static readonly string[] BoneMarkClasses = { "不开启", "部位", "表面", "标志" };
 
         //MenuItem会在unity菜单栏添加自定义新项
         [MenuItem("脚本/设置图谱展示的模型")]
@@ -38,9 +38,9 @@ namespace Editor
             GUILayout.Space(10);
 
             GUILayout.Label("选择骨性标志类型：", EditorStyles.boldLabel);
-            for (var i = 0; i < _boneMarkClasses.Length; i++)
+            for (var i = 0; i < BoneMarkClasses.Length; i++)
             {
-                var newSelected = EditorGUILayout.ToggleLeft(_boneMarkClasses[i], _atlas.boneMarkType == i);
+                var newSelected = EditorGUILayout.ToggleLeft(BoneMarkClasses[i], _atlas.boneMarkType == i);
                 if (newSelected && _atlas.boneMarkType != i)
                 {
                     _atlas.boneMarkType = i; // 确保只有一个被选中
