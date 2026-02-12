@@ -23,10 +23,9 @@ namespace Plugins.C_
 
         private Text _infoPanel;
 
-        private Atlas _atlas;
+        private AtlasItem _atlas;
         private int _activeGroupIndex;
-        private List<AtlasLableGroup> _groups;
-        private AtlasLable _activeLable;
+        private AtlasLabel _activeLable;
         private MainCameraContraller _camCtrl;
 
         private static readonly HashSet<string> ValidRoots = new()
@@ -34,7 +33,7 @@ namespace Plugins.C_
             "BodyMaleStatic(Clone)", "BodyFemaleStatic(Clone)", "ForamensMale(Clone)", "ForamensFemale(Clone)"
         };
 
-        public Atlas GetAtlas()
+        public AtlasItem GetAtlas()
         {
             if (_atlas == null)
             {
@@ -83,7 +82,7 @@ namespace Plugins.C_
 
             // 初始化数据
             LoadAtlas();
-            _groups = new List<AtlasLableGroup>();
+            _atlas.groups = new List<AtlasGroup>();
             labelMatrix = new List<PairLocaltion>();
 
             // 读取点文件
@@ -101,11 +100,11 @@ namespace Plugins.C_
                     if (startIdx == -1 || endIdx == -1) continue;
 
                     // 遍历标签组文件并存储为对象
-                    _groups.Add(JsonUtility.FromJson<AtlasLableGroup>(File.ReadAllText(filepath)));
+                    _atlas.groups.Add(JsonUtility.FromJson<AtlasGroup>(File.ReadAllText(filepath)));
                 }
 
                 // 生成标签矩阵
-                if (_groups.Count > 0) LabelsConvertToLabelMatrix();
+                if (_atlas.groups.Count > 0) LabelsConvertToLabelMatrix();
             }
             // 若不存在创建文件夹
             else Directory.CreateDirectory(dataPath);
@@ -123,7 +122,7 @@ namespace Plugins.C_
 
             var prefabNames = clickedModel.name.Split("~");
             var timestamp = new DateTimeOffset(DateTime.Now).ToUnixTimeMilliseconds();
-            _activeLable = new AtlasLable
+            _activeLable = new AtlasLabel
             {
                 name = prefabNames[0] + "_" + timestamp.ToString()[^4..],
                 value = Convert.ToInt32(prefabNames[1]),
@@ -153,7 +152,7 @@ namespace Plugins.C_
                 labelMatrix[targetLocaltionOrderNum].l = _activeLable.name;
             }
 
-            _groups[_activeGroupIndex].lables.Add(_activeLable);
+            _atlas.groups[_activeGroupIndex].labels.Add(_activeLable);
             _activeLable = null;
             Debug.Log("当前标签已添加");
         }
@@ -177,7 +176,7 @@ namespace Plugins.C_
                 labelMatrix[targetLocaltionOrderNum].r = _activeLable.name;
             }
 
-            _groups[_activeGroupIndex].lables.Add(_activeLable);
+            _atlas.groups[_activeGroupIndex].labels.Add(_activeLable);
             _activeLable = null;
             Debug.Log("当前标签已添加");
         }
@@ -186,9 +185,9 @@ namespace Plugins.C_
         {
             var pos = _camCtrl.GetMainCameraPostion();
             var rot = _camCtrl.GetMainCameraRotation();
-            _groups.Add(new AtlasLableGroup
+            _atlas.groups.Add(new AtlasGroup
             {
-                lables = new List<AtlasLable>(),
+                labels = new List<AtlasLabel>(),
                 cameraPositionX = pos.x,
                 cameraPositionY = pos.y,
                 cameraPositionZ = pos.z,
@@ -196,7 +195,7 @@ namespace Plugins.C_
                 cameraRotationY = rot.y,
                 cameraRotationZ = rot.z
             });
-            _activeGroupIndex = _groups.Count - 1;
+            _activeGroupIndex = _atlas.groups.Count - 1;
             UpdateInfoPanel();
             Debug.Log("创建组成功");
         }
@@ -204,16 +203,16 @@ namespace Plugins.C_
         private void ChangeGroup()
         {
             // 切换当前标签组
-            if (_activeGroupIndex >= 0 && _activeGroupIndex < _groups.Count - 1) _activeGroupIndex++;
+            if (_activeGroupIndex >= 0 && _activeGroupIndex < _atlas.groups.Count - 1) _activeGroupIndex++;
             else _activeGroupIndex = 0;
 
             _camCtrl.SetCameraTransform(
-                _groups[_activeGroupIndex].cameraPositionX,
-                _groups[_activeGroupIndex].cameraPositionY,
-                _groups[_activeGroupIndex].cameraPositionZ,
-                _groups[_activeGroupIndex].cameraRotationX,
-                _groups[_activeGroupIndex].cameraRotationY,
-                _groups[_activeGroupIndex].cameraRotationZ
+                _atlas.groups[_activeGroupIndex].cameraPositionX,
+                _atlas.groups[_activeGroupIndex].cameraPositionY,
+                _atlas.groups[_activeGroupIndex].cameraPositionZ,
+                _atlas.groups[_activeGroupIndex].cameraRotationX,
+                _atlas.groups[_activeGroupIndex].cameraRotationY,
+                _atlas.groups[_activeGroupIndex].cameraRotationZ
             );
 
             UpdateInfoPanel();
@@ -221,16 +220,16 @@ namespace Plugins.C_
 
         private void SaveAtlas()
         {
-            if (_groups.Count == 0 || labelMatrix.Count == 0) return;
+            if (_atlas.groups.Count == 0 || labelMatrix.Count == 0) return;
             LabelMatrixConvertToLabels();
 
-            for (var i = 0; i < _groups.Count; i++)
+            for (var i = 0; i < _atlas.groups.Count; i++)
             {
                 File.WriteAllText(
                     Path.Combine(
                         Application.dataPath, $"Atlas_database/Atlas_{_atlas.name}_lables/No_{i}_Group_lables.json"
                     ),
-                    JsonUtility.ToJson(_groups[i])
+                    JsonUtility.ToJson(_atlas.groups[i])
                 );
             }
 
@@ -243,7 +242,7 @@ namespace Plugins.C_
         {
             try
             {
-                _atlas = JsonUtility.FromJson<Atlas>(
+                _atlas = JsonUtility.FromJson<AtlasItem>(
                     File.ReadAllText(Path.Combine(Application.dataPath, $"Atlas_database/atlas_{atlasName}.json"))
                 );
                 atlasName = _atlas.name;
@@ -284,11 +283,11 @@ namespace Plugins.C_
         private void UpdateInfoPanel()
         {
             // 更新显示的数据
-            var content = $"Group Order Number: {_activeGroupIndex + 1} / {_groups.Count}\n";
+            var content = $"Group Order Number: {_activeGroupIndex + 1} / {_atlas.groups.Count}\n";
 
-            if (_groups.Count > 0)
+            if (_atlas.groups.Count > 0)
             {
-                content += $"Labels Number: {_groups[_activeGroupIndex].lables.Count}\n";
+                content += $"Labels Number: {_atlas.groups[_activeGroupIndex].labels.Count}\n";
             }
 
 
@@ -329,7 +328,7 @@ namespace Plugins.C_
         private void LabelMatrixConvertToLabels()
         {
             // 将标签位置矩阵记录的位置赋值给标签实例
-            foreach (var lable in _groups.SelectMany(static group => group.lables))
+            foreach (var lable in _atlas.groups.SelectMany(static group => group.labels))
             {
                 for (var i = 0; i < labelMatrix.Count; i++)
                 {
@@ -347,7 +346,7 @@ namespace Plugins.C_
         {
             labelMatrix.Clear();
             var labelsMap =
-                _groups.SelectMany(static group => group.lables)
+                _atlas.groups.SelectMany(static group => group.labels)
                     .GroupBy(static label => label.orderNum)
                     .ToDictionary(
                         static lab => lab.Key,

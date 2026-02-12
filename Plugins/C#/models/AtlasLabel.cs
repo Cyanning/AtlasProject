@@ -4,7 +4,7 @@ using System;
 namespace Plugins.C_.models
 {
     [Serializable]
-    public class AtlasLable
+    public class AtlasLabel
     {
         public string name;
         public int value;
