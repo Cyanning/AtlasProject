@@ -1,27 +1,74 @@
 {
-  "boneMarkClasses": [
-    "不开启",
-    "部位",
-    "表面",
-    "标志"
+  "boneMarkTypes": [
+    {
+      "idNum": 0,
+      "tittle": "不开启"
+    },
+    {
+      "idNum": 1,
+      "tittle": "部位"
+    },
+    {
+      "idNum": 2,
+      "tittle": "表面"
+    },
+    {
+      "idNum": 3,
+      "tittle": "标志"
+    }
   ],
-  "atlasTypes": {
-    "systemClasses": [
-      "骨骼",
-      "肌肉",
-      "心血管",
-      "神经",
-      "消化",
-      "呼吸"
-    ],
-    "regionClasses": [
-      "全身",
-      "头颈部",
-      "上肢",
-      "胸部",
-      "腹部",
-      "盆部",
-      "下肢"
-    ]
-  }
+  "atlasTypes": [
+    {
+      "idNum": 1,
+      "tittle": "骨骼"
+    },
+    {
+      "idNum": 2,
+      "tittle": "肌肉"
+    },
+    {
+      "idNum": 3,
+      "tittle": "心血管"
+    },
+    {
+      "idNum": 4,
+      "tittle": "神经"
+    },
+    {
+      "idNum": 5,
+      "tittle": "消化"
+    },
+    {
+      "idNum": 6,
+      "tittle": "呼吸"
+    },
+    {
+      "idNum": 10,
+      "tittle": "全身"
+    },
+    {
+      "idNum": 11,
+      "tittle": "头颈部"
+    },
+    {
+      "idNum": 12,
+      "tittle": "上肢"
+    },
+    {
+      "idNum": 13,
+      "tittle": "胸部"
+    },
+    {
+      "idNum": 14,
+      "tittle": "腹部"
+    },
+    {
+      "idNum": 15,
+      "tittle": "盆部"
+    },
+    {
+      "idNum": 16,
+      "tittle": "下肢"
+    }
+  ]
 }

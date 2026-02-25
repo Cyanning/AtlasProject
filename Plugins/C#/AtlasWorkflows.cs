@@ -10,27 +10,30 @@ using Plugins.C_.models;
 namespace Plugins.C_
 {
     [Serializable]
-    public class PairLocaltion
+    public class Row
     {
-        public string l;
-        public string r;
+        public string left;
+        public string right;
     }
 
     public class AtlasWorkflows : MonoBehaviour
     {
         public string atlasName;
-        public List<PairLocaltion> labelMatrix;
+        public List<Row> matrix;
 
+        private MainCameraContraller _camCtrl;
         private Text _infoPanel;
 
-        private AtlasItem _atlas;
-        private int _activeGroupIndex;
-        private AtlasLabel _activeLable;
-        private MainCameraContraller _camCtrl;
+        private AtlasItem _atlas; // 缓存图谱对象
+        private int _activeGroupIndex; // 当前打开的组的角标
+        private AtlasLabel _activeLable; // 缓存一个标签点
 
         private static readonly HashSet<string> ValidRoots = new()
         {
-            "BodyMaleStatic(Clone)", "BodyFemaleStatic(Clone)", "ForamensMale(Clone)", "ForamensFemale(Clone)"
+            "BodyMaleStatic(Clone)",
+            "BodyFemaleStatic(Clone)",
+            "ForamensMale(Clone)",
+            "ForamensFemale(Clone)"
         };
 
         public AtlasItem GetAtlas()
@@ -39,11 +42,15 @@ namespace Plugins.C_
             {
                 LoadAtlas();
             }
+
             return _atlas;
         }
 
         private void Start()
         {
+            // 绑定主相机脚本
+            _camCtrl = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<MainCameraContraller>();
+
             //按钮绑定事件
             for (var i = 0; i < transform.childCount; i++)
             {
@@ -77,13 +84,10 @@ namespace Plugins.C_
                 }
             }
 
-            // 绑定主相机脚本
-            _camCtrl = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<MainCameraContraller>();
-
             // 初始化数据
             LoadAtlas();
             _atlas.groups = new List<AtlasGroup>();
-            labelMatrix = new List<PairLocaltion>();
+            matrix = new List<Row>();
 
             // 读取点文件
             var dataPath = Path.Combine(Application.dataPath, $"Atlas_database/Atlas_{_atlas.name}_lables");
@@ -116,10 +120,9 @@ namespace Plugins.C_
         public void Clicked(RaycastHit raycast) // 传入射线坐标
         {
             var clickedModel = raycast.transform;
-
             if (!ValidRoots.Contains(clickedModel.root.name)) return;
-            var raycastPoint = raycast.point;
 
+            var raycastPoint = raycast.point;
             var prefabNames = clickedModel.name.Split("~");
             var timestamp = new DateTimeOffset(DateTime.Now).ToUnixTimeMilliseconds();
             _activeLable = new AtlasLabel
@@ -145,11 +148,11 @@ namespace Plugins.C_
             var targetLocaltionOrderNum = GetLocaltionOrderNum()[0];
             if (targetLocaltionOrderNum == -1)
             {
-                labelMatrix.Add(new PairLocaltion { l = _activeLable.name });
+                matrix.Add(new Row { left = _activeLable.name });
             }
             else
             {
-                labelMatrix[targetLocaltionOrderNum].l = _activeLable.name;
+                matrix[targetLocaltionOrderNum].left = _activeLable.name;
             }
 
             _atlas.groups[_activeGroupIndex].labels.Add(_activeLable);
@@ -169,11 +172,11 @@ namespace Plugins.C_
             var targetLocaltionOrderNum = GetLocaltionOrderNum()[1];
             if (targetLocaltionOrderNum == -1)
             {
-                labelMatrix.Add(new PairLocaltion { r = _activeLable.name });
+                matrix.Add(new Row { right = _activeLable.name });
             }
             else
             {
-                labelMatrix[targetLocaltionOrderNum].r = _activeLable.name;
+                matrix[targetLocaltionOrderNum].right = _activeLable.name;
             }
 
             _atlas.groups[_activeGroupIndex].labels.Add(_activeLable);
@@ -220,7 +223,7 @@ namespace Plugins.C_
 
         private void SaveAtlas()
         {
-            if (_atlas.groups.Count == 0 || labelMatrix.Count == 0) return;
+            if (_atlas.groups.Count == 0 || matrix.Count == 0) return;
             LabelMatrixConvertToLabels();
 
             for (var i = 0; i < _atlas.groups.Count; i++)
@@ -249,7 +252,7 @@ namespace Plugins.C_
             }
             catch (FileNotFoundException)
             {
-                Debug.Log($"没有发现 {atlasName} 的数据文件");
+                Debug.LogWarning($"没有发现 {atlasName} 的数据文件");
             }
         }
 
@@ -304,19 +307,19 @@ namespace Plugins.C_
             _infoPanel.text = content;
         }
 
+        // 从上至下找出为空的标签位置，若无空位返回值为-1
         private int[] GetLocaltionOrderNum()
         {
-            // 从上至下找出为空的标签位置，若无空位返回值为-1
             LabelMatrixConvertToLabels();
             var orderNums = new[] { -1, -1 };
-            for (var i = 0; i < labelMatrix.Count; i++)
+            for (var i = 0; i < matrix.Count; i++)
             {
-                if (string.IsNullOrEmpty(labelMatrix[i].l))
+                if (string.IsNullOrEmpty(matrix[i].left))
                 {
                     orderNums[0] = i;
                 }
 
-                if (string.IsNullOrEmpty(labelMatrix[i].r))
+                if (string.IsNullOrEmpty(matrix[i].right))
                 {
                     orderNums[1] = i;
                 }
@@ -325,62 +328,48 @@ namespace Plugins.C_
             return orderNums;
         }
 
+        // 将标签位置矩阵记录的位置赋值给标签实例
         private void LabelMatrixConvertToLabels()
         {
-            // 将标签位置矩阵记录的位置赋值给标签实例
-            foreach (var lable in _atlas.groups.SelectMany(static group => group.labels))
-            {
-                for (var i = 0; i < labelMatrix.Count; i++)
-                {
-                    if (lable.name == labelMatrix[i].l) lable.location = 0;
-                    else if (lable.name == labelMatrix[i].r) lable.location = 1;
-                    else continue;
+            var labelsMap = _atlas.groups
+                .SelectMany(static group => group.labels)
+                .ToDictionary(static lab => lab.name);
 
-                    lable.orderNum = i;
-                    break;
+            for (var i = 0; i < matrix.Count; i++)
+            {
+                if (labelsMap.TryGetValue(matrix[i].left, out var labelLeft))
+                {
+                    labelLeft.orderNum = i;
+                    labelLeft.location = 0;
+                }
+
+                if (labelsMap.TryGetValue(matrix[i].right, out var labelRight))
+                {
+                    labelRight.orderNum = i;
+                    labelRight.location = 1;
                 }
             }
         }
 
-        private void LabelsConvertToLabelMatrix() // 根据标签实例的数据生成标签矩阵
+        // 根据标签实例的数据生成标签矩阵
+        private void LabelsConvertToLabelMatrix()
         {
-            labelMatrix.Clear();
-            var labelsMap =
-                _atlas.groups.SelectMany(static group => group.labels)
-                    .GroupBy(static label => label.orderNum)
-                    .ToDictionary(
-                        static lab => lab.Key,
-                        static lab => lab.ToList()
-                    );
+            // 讲标签全部提取出来按上下顺序编组，变成 { row_num: label} 的结构
+            var labelsMap = _atlas.groups
+                .SelectMany(static group => group.labels)
+                .GroupBy(static label => label.orderNum)
+                .ToDictionary(
+                    static lab => lab.Key, static lab => lab.ToList()
+                );
 
-            var i = 0;
-            var flag = true;
-            while (flag)
+            matrix.Clear();
+            foreach (var item in labelsMap.OrderBy(static kv => kv.Key))
             {
-                if (labelsMap.TryGetValue(i, out var labels))
-                {
-                    var apair = new PairLocaltion();
-                    foreach (var label in labels)
-                    {
-                        if (label.location == 0) apair.l = label.name;
-                        else if (label.location == 1) apair.r = label.name;
-                    }
-
-                    labelMatrix.Add(apair);
-                }
+                var row = item.Value;
+                if (row[0].location == 0 && row[1].location == 1)
+                    matrix.Add(new Row { left = row[0].name, right = row[1].name });
                 else
-                {
-                    flag = false;
-                    foreach (var key in labelsMap.Keys)
-                    {
-                        if (i >= key) continue;
-                        labelMatrix.Add(new PairLocaltion());
-                        flag = true;
-                        break;
-                    }
-                }
-
-                i++;
+                    matrix.Add(new Row { left = row[1].name, right = row[0].name });
             }
         }
     }

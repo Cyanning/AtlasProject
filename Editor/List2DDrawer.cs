@@ -5,7 +5,7 @@ using Plugins.C_;
 
 namespace Editor
 {
-    [CustomPropertyDrawer(typeof(PairLocaltion))]
+    [CustomPropertyDrawer(typeof(Row))]
     public class List2DDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
