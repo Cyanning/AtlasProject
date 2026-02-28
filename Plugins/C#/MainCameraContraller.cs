@@ -6,23 +6,26 @@ namespace Plugins.C_
     public class MainCameraContraller : MonoBehaviour
     {
         private Camera _cam;
-        private GameObject _canvas;
+        // private RaycastHit _raycast;
+        // private bool _beenClicked;
+
+        // public bool Clicked(out RaycastHit raycast)
+        // {
+        //     raycast = _raycast;
+        //     return _beenClicked;
+        // }
 
         private void Start()
         {
             _cam = GetComponent<Camera>();
-            _canvas = GameObject.FindGameObjectWithTag("GameController");
         }
 
-
-        private void Update()
-        {
-            if (!Input.GetMouseButtonDown(0)) return;
-
-            if (!Physics.Raycast(_cam.ScreenPointToRay(Input.mousePosition), out var raycast)) return;
-
-            _canvas.GetComponent<AtlasWorkflows>().Clicked(raycast);
-        }
+        // private void Update()
+        // {
+        //     _beenClicked =
+        //     Input.GetMouseButtonDown(0) &&
+        //     Physics.Raycast(_cam.ScreenPointToRay(Input.mousePosition), out _raycast);
+        // }
 
         public void SetCameraTransform(float posX, float posY, float posZ, float rotX, float rotY, float rotZ)
         {
@@ -45,6 +48,5 @@ namespace Plugins.C_
                 z = eulerAngles.z > 180f ? eulerAngles.z - 360f : eulerAngles.z
             };
         }
-
     }
 }

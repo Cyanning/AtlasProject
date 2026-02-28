@@ -18,9 +18,9 @@ namespace Plugins.C_
                 Ray ray = Camera.main.ScreenPointToRay(startPos);
                 if (Physics.Raycast(ray, out RaycastHit rayHitInfo))//使用默认射线长度和其他默认参数
                 {
-                    foreach (ObjectColorModel objInfo in ThreeD_Object.LastObject)
+                    foreach (ObjectColorModel objInfo in ModelInteraction.lastObject)
                     {
-                        if (objInfo.obj.transform.name.Equals(rayHitInfo.transform.name))
+                        if (objInfo.Obj.transform.name.Equals(rayHitInfo.transform.name))
                         {
                             splitMoveTrans = rayHitInfo.transform;
                             break;

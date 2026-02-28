@@ -155,7 +155,7 @@ namespace Plugins.C_
 
             SetAssetsPath(TestGetData.TEST_NEW_RESOURCE_PATH);
             SetModelPath(
-                GameObject.Find("Canvas").GetComponent<AtlasWorkflows>().atlas.gender == 1
+                GameObject.Find("Canvas").GetComponent<AtlasCanvas>().atlas.gender == 1
                     ? TestGetData.TEST_NEW_MODEL_FEMALE_PATH
                     : TestGetData.TEST_NEW_MODEL_MALE_PATH
             );
@@ -295,7 +295,7 @@ namespace Plugins.C_
 
 
             var modelDisplay =
-                GameObject.Find("Canvas").GetComponent<AtlasWorkflows>().atlas.modelDisplayed;
+                GameObject.Find("Canvas").GetComponent<AtlasCanvas>().atlas.modelDisplayed;
             foreach (var childTransform in transforms)
             {
                 if (!childTransform.name.Contains("~") || childTransform.childCount > 0) continue;
@@ -571,9 +571,9 @@ namespace Plugins.C_
             }
 
             //box.convex = true;
-            // ThreeD_Object为3D物体挂载的脚本
-            var item = itemObject.GetComponent<ThreeD_Object>();
-            item ??= itemObject.AddComponent<ThreeD_Object>();
+            // ModelInteraction为3D物体挂载的脚本
+            var item = itemObject.GetComponent<ModelInteraction>();
+            item ??= itemObject.AddComponent<ModelInteraction>();
 
             var trigger = itemObject.GetComponent<EventTrigger>();
             if (trigger == null)
@@ -2072,23 +2072,23 @@ namespace Plugins.C_
         public void SetSelected(string modelName)
         {
             CancelSelect("");
-            string[] sArray = modelName.Split(';');
+            var sArray = modelName.Split(';');
             if (sArray.Length != 0)
             {
-                foreach (string i in sArray)
+                foreach (var i in sArray)
                 {
-                    GameObject gameObject = getObject(i);
+                    var gameObject = getObject(i);
                     if (gameObject == null)
                     {
                         Debug.Log("SetSelected is null value = " + i);
                     }
                     else
                     {
-                        UnityEngine.Color color = gameObject.GetComponent<Renderer>().material.GetColor("_Color");
-                        MeshRenderer renderer = gameObject.GetComponent<MeshRenderer>();
+                        var color = gameObject.GetComponent<Renderer>().material.GetColor("_Color");
+                        var renderer = gameObject.GetComponent<MeshRenderer>();
 
                         UnityEngine.Color nowColor;
-                        string path = GetGameObjectPath(gameObject.transform);
+                        var path = GetGameObjectPath(gameObject.transform);
                         if (path.StartsWith($"{modelPrefabName}(Clone)/淋巴系统~"))
                         {
                             //}
@@ -2107,11 +2107,11 @@ namespace Plugins.C_
 
 
                         ObjectColorModel model = new ObjectColorModel();
-                        model.obj = gameObject;
+                        model.Obj = gameObject;
                         model.LastColor = color;
                         if (color != nowColor)
                         {
-                            ThreeD_Object.LastObject.Add(model);
+                            ModelInteraction.lastObject.Add(model);
                         }
                     }
                 }
@@ -2120,33 +2120,33 @@ namespace Plugins.C_
 
         public void CancelSelect(string str)
         {
-            if (ThreeD_Object.LastObject != null)
+            if (ModelInteraction.lastObject != null)
             {
-                foreach (ObjectColorModel m in ThreeD_Object.LastObject)
+                foreach (ObjectColorModel m in ModelInteraction.lastObject)
                 {
-                    if (m.obj != null)
+                    if (m.Obj != null)
                     {
                         if (showType == 3)
                         {
-                            if (m.obj.transform.parent.name.Equals("000"))
+                            if (m.Obj.transform.parent.name.Equals("000"))
                             {
-                                m.obj.GetComponent<MeshRenderer>().material
+                                m.Obj.GetComponent<MeshRenderer>().material
                                     .SetColor("_Color", new Color32(255, 255, 255, 255));
                             }
                             else
                             {
-                                m.obj.GetComponent<MeshRenderer>().material
+                                m.Obj.GetComponent<MeshRenderer>().material
                                     .SetColor("_Color", new Color32(255, 255, 255, 0));
                             }
                         }
                         else
                         {
-                            m.obj.GetComponent<MeshRenderer>().material.SetColor("_Color", m.LastColor);
+                            m.Obj.GetComponent<MeshRenderer>().material.SetColor("_Color", m.LastColor);
                         }
                     }
                 }
 
-                ThreeD_Object.LastObject.Clear();
+                ModelInteraction.lastObject.Clear();
             }
 
             GetCenter();

@@ -6,25 +6,36 @@ using Plugins.C_.models;
 
 namespace Plugins.C_
 {
-    public class ThreeD_Object : MonoBehaviour
+    public class ModelInteraction : MonoBehaviour
     {
-        public static Color LastColor;
-        public static List<ObjectColorModel> LastObject = new List<ObjectColorModel>();
+        public static List<ObjectColorModel> lastObject = new List<ObjectColorModel>();
         public Vector3 center;
         public long beginTime;
         public long lastClickTime;
 
+        public static Color lastColor;
+        public bool clickState;
+
+        private GameObject _mainCamera;
+        private FingerTouchForLittle _fingerTouch;
+        private ClickEvent _clickEvent;
+        private static readonly int StateColor = Shader.PropertyToID("_Color");
+
+        public void Start()
+        {
+            _mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
+            _fingerTouch = _mainCamera.GetComponent<FingerTouchForLittle>();
+            _clickEvent = _mainCamera.GetComponent<ClickEvent>();
+        }
+
         public void OnClickCubeItem(UnityEngine.EventSystems.BaseEventData data = null)
         {
-            GameObject camera = GameObject.Find("Camera");
-            FingerTouchForLittle fingerTouch = camera.GetComponent<FingerTouchForLittle>();
-
-            if (fingerTouch.isDrag)
+            if (_fingerTouch.isDrag)
             {
                 return;
             }
 
-            if (fingerTouch.supplyTouchType != 0)
+            if (_fingerTouch.supplyTouchType != 0)
             {
                 return;
             }
@@ -33,62 +44,51 @@ namespace Plugins.C_
             {
                 return;
             }
-
-            ClickEvent clickEvent = camera.GetComponent<ClickEvent>();
-
-            if (clickEvent.showType != 0 && clickEvent.showType != 2 && clickEvent.showType != 3 &&
-                clickEvent.showType != 5)
+    
+            if (_clickEvent.showType is not (0 or 2 or 3 or 5))
             {
                 return;
             }
 
-            MeshRenderer renderer = transform.gameObject.GetComponent<MeshRenderer>();
+            clickState = !clickState;
+            var targetRenderer = transform.gameObject.GetComponent<MeshRenderer>();
 
-            if (clickEvent.showType == 0)
+            if (_clickEvent.showType == 0)
             {
-                TimeSpan timeSpan = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
-                long nowTime = Convert.ToInt64(timeSpan.TotalSeconds);
-                bool isMove = false; // 是否开启移动动画
-                if (nowTime - lastClickTime <= 0.8F)
-                {
-                    isMove = true;
-                }
+                var timeSpan = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
+                var nowTime = Convert.ToInt64(timeSpan.TotalSeconds);
+                var isMove = nowTime - lastClickTime <= 0.8F;  // 是否开启移动动画
 
-                if (clickEvent.isResetStatus)
+                if (_clickEvent.isResetStatus)
                 {
                     isMove = true;
-                    clickEvent.isResetStatus = false;
+                    _clickEvent.isResetStatus = false;
                 }
 
                 lastClickTime = nowTime;
-                Bounds bounds = renderer.bounds;
+                var bounds = targetRenderer.bounds;
                 center = bounds.center;
                 ClickEvent.RotationCenter = center;
-                clickEvent.isClickCenter = true;
+                _clickEvent.isClickCenter = true;
                 if (isMove)
                 {
-                    Vector3 begin = new Vector3(bounds.center.x, bounds.center.y, bounds.center.z);
-
-                    Vector3 velocity = camera.transform.eulerAngles;
-                    //Vector3 eulerAngles = Quaternion.FromToRotation(Vector3.forward, velocity).eulerAngles;
-                    //Vector3 end = GetEndPointByTrigonometric1(velocity, begin, 1F);
-                    double moveDistance = bounds.size.x * bounds.size.y * 1000000 / 27.05297 * 0.13f;
+                    var moveDistance = bounds.size.x * bounds.size.y * 1000000 / 27.05297 * 0.13f;
                     if (moveDistance < 0.13)
                     {
                         moveDistance = 0.13;
                     }
 
-                    Vector3 tmp = new Vector3(0, 0, -1 * ((float)moveDistance));
+                    var tmp = new Vector3(0, 0, -1 * ((float)moveDistance));
 
                     //Sequence quence = DOTween.Sequence();
 
-                    Vector3 end = center + camera.transform.rotation * tmp;
+                    var end = center + _mainCamera.transform.rotation * tmp;
                     ClickEvent.isMoveAnima = true;
 
-                    TimeSpan ts = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
-                    clickEvent.beginAnimTime = Convert.ToInt64(ts.TotalSeconds);
+                    var ts = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
+                    _clickEvent.beginAnimTime = Convert.ToInt64(ts.TotalSeconds);
 
-                    Tweener tweener = camera.transform.DOMove(end, 0.5f);
+                    Tweener tweener = _mainCamera.transform.DOMove(end, 0.5f);
                     tweener.SetUpdate(true);
                     tweener.SetEase(Ease.Linear);
                     tweener.SetAutoKill(true);
@@ -97,75 +97,69 @@ namespace Plugins.C_
                         ClickEvent.isMoveAnima = false;
                         SendClickToApp();
                     };
-                    tweener.onKill = delegate() { };
+                    tweener.onKill = static delegate { };
                 }
                 else
                 {
                     //string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
-                    //clickEvent.SetAlpha(clickModelName);
+                    //_clickEvent.SetAlpha(clickModelName);
                     SendClickToApp();
                 }
             }
             else
             {
                 //string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
-                //clickEvent.SetAlpha(clickModelName);
+                //_clickEvent.SetAlpha(clickModelName);
                 SendClickToApp();
             }
 
 
-            //clickEvent.cameraMoveType = 0;
+            //_clickEvent.cameraMoveType = 0;
 
             if (!ClickEvent.isAutoDisable)
             {
-                Color lastColor = transform.gameObject.GetComponent<MeshRenderer>().material.GetColor("_Color");
-                if (clickEvent.showType == 0 && LastObject.Count > 0 &&
-                    LastObject[LastObject.Count - 1].obj.transform.name.Equals(transform.name))
+                var lastColor = transform.gameObject.GetComponent<MeshRenderer>().material.GetColor(StateColor);
+                if (_clickEvent.showType == 0 && lastObject.Count > 0 &&
+                    lastObject[^1].Obj.transform.name.Equals(transform.name))
                 {
                     return;
                 }
 
                 //Boolean isClicked = false;
-                foreach (ObjectColorModel m in LastObject)
+                foreach (var m in lastObject)
                 {
-                    if (m.obj == transform.gameObject)
+                    if (m.Obj == transform.gameObject)
                     {
                         lastColor = m.LastColor;
                     }
                 }
 
 
-                if (!ClickEvent.isManyChoose || clickEvent.showType == 2)
+                if (!ClickEvent.isManyChoose || _clickEvent.showType == 2)
                 {
-                    foreach (ObjectColorModel m in LastObject)
+                    foreach (var m in lastObject)
                     {
-                        if (m.obj != null)
+                        if (m.Obj is null) continue;
+                        if (_clickEvent.showType == 3)
                         {
-                            if (clickEvent.showType == 3)
-                            {
-                                if (m.obj.transform.parent.name.Equals("000"))
-                                {
-                                    m.obj.GetComponent<MeshRenderer>().material
-                                        .SetColor("_Color", new Color32(255, 255, 255, 255));
-                                }
-                                else
-                                {
-                                    m.obj.GetComponent<MeshRenderer>().material
-                                        .SetColor("_Color", new Color32(255, 255, 255, 0));
-                                }
-                            }
-                            else
-                            {
-                                m.obj.GetComponent<MeshRenderer>().material.SetColor("_Color", m.LastColor);
-                            }
+                            m.Obj.GetComponent<MeshRenderer>().material.SetColor(
+                                StateColor,
+                                m.Obj.transform.parent.name.Equals("000")
+                                    ?new Color32(255, 255, 255, 255)
+                                    :new Color32(255, 255, 255, 0)
+                            );
+                        }
+                        else
+                        {
+                            m.Obj.GetComponent<MeshRenderer>().material.SetColor(StateColor, m.LastColor);
                         }
                     }
 
-                    LastObject.Clear();
+                    lastObject.Clear();
                 }
 
                 Color nowColor;
-                string path = GetGameObjectPath(transform);
+                var path = GetGameObjectPath(transform);
                 if (path.Contains("淋巴系统~150001"))
                 {
                     ColorUtility.TryParseHtmlString("#FF0000", out nowColor);
@@ -175,40 +169,27 @@ namespace Plugins.C_
                     ColorUtility.TryParseHtmlString("#7eb678", out nowColor);
                 }
 
-                if (clickEvent.showType == 3)
+                if (_clickEvent.showType == 3)
                 {
                     ColorUtility.TryParseHtmlString("#00FF00", out nowColor);
                 }
 
-                SetMeshColor(renderer, nowColor, clickEvent.isShowLittle);
+                SetMeshColor(targetRenderer, nowColor, _clickEvent.isShowLittle);
 
-                ObjectColorModel model = new ObjectColorModel();
-                model.obj = transform.gameObject;
-                model.LastColor = lastColor;
+                var model = new ObjectColorModel {Obj = transform.gameObject, LastColor = lastColor};
                 if (lastColor != nowColor)
                 {
-                    LastObject.Add(model);
+                    lastObject.Add(model);
                 }
             }
             else
             {
-                string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
-
-#if UNITY_IOS
-               iOSPlugin.ReturnSoonHideClickModel(clickModelName);
-#elif UNITY_WEBGL
-               JSPlugin.soonHideClickModel(clickModelName);
-#elif UNITY_ANDROID
-            AndroidJavaClass jc = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
-            AndroidJavaObject _ajc = jc.GetStatic<AndroidJavaObject>("currentActivity");
-            bool success = _ajc.Call<bool>("soonHideClickModel", new object[] { clickModelName });
-#else
-
-#endif
+                var clickModelName =
+                    transform.name[(transform.name.LastIndexOf("~", StringComparison.Ordinal) + 1)..];
             }
         }
 
-        void SendClickToApp()
+        private void SendClickToApp()
         {
             string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1) + ";";
             if (clickModelName.Equals("default;"))
@@ -230,20 +211,7 @@ namespace Plugins.C_
                     clickModelName = clickModelName.Substring(0, clickModelName.Length - 1);
                 }
             }
-
-#if UNITY_IOS
-               iOSPlugin.ClickModelName(clickModelName);
-#elif UNITY_WEBGL
-               JSPlugin.ClickModelName(clickModelName);
-#elif UNITY_ANDROID
-        AndroidJavaClass jc = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
-        AndroidJavaObject _ajc = jc.GetStatic<AndroidJavaObject>("currentActivity");
-        // AndroidJavaObject _ajc = new AndroidJavaObject("com.wazitan.anatomy.activity.UnityPlayerActivity");
-        bool success = _ajc.Call<bool>("clickModel", new object[] { clickModelName });
-#else
-#endif
         }
-
 
         //对象移动时调用
         void AnimationEnd(string f)
@@ -251,16 +219,6 @@ namespace Plugins.C_
             /*        GameObject camera = GameObject.Find("Camera");
                     camera.transform.rotation = Quaternion.Euler(0, -360, 0);
                     Debug.Log("end : " + f);*/
-        }
-
-        void Update()
-        {
-            /*     if (isMoveAnima) {
-                     GameObject camera = GameObject.Find("Camera");
-                     iTween.LookTo(camera, center, 0.3F);
-                 }*/
-            /*       GameObject camera = GameObject.Find("Camera");
-                   camera.DoLookAt(center,0f);*/
         }
 
         //对象移动时调用
@@ -321,7 +279,7 @@ namespace Plugins.C_
             {
                 if (isShowLittle)
                 {
-                    meshRenderer.material.SetColor("_Color", new Color32(255, 255, 255, 255));
+                    meshRenderer.material.SetColor(StateColor, new Color32(255, 255, 255, 255));
                 }
                 else
                 {

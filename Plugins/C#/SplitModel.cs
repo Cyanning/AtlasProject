@@ -22,9 +22,9 @@ namespace Plugins.C_
             {
                 Vector2 startPos = Input.mousePosition;
 
-                foreach (ObjectColorModel objInfo in ThreeD_Object.LastObject)
+                foreach (ObjectColorModel objInfo in ModelInteraction.lastObject)
                 {
-                    if (objInfo.obj.transform.name.Equals(transform.name))
+                    if (objInfo.Obj.transform.name.Equals(transform.name))
                     {
                         Debug.Log("Hit--" + transform.name);//碰撞到的物体的名称
                         Vector3 mouseStart2DPos = new Vector3(startPos.x, startPos.y, transform.position.z);

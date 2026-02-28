@@ -10,7 +10,7 @@ using Plugins.C_.models.Atlas;
 
 namespace Plugins.C_
 {
-    public class AtlasWorkflows : MonoBehaviour
+    public class AtlasCanvas : MonoBehaviour
     {
         public string atlasName;
         public List<Row> labelsMatrix;
@@ -86,8 +86,11 @@ namespace Plugins.C_
             UpdateActiveInfo();
         }
 
-        public void Clicked(RaycastHit raycast) // 传入射线坐标
+        // 获取与模型交互的信息
+        public void LateUpdate()
         {
+            if (!_camCtrl.Clicked(out var raycast)) return;
+
             var clickedModel = raycast.transform;
             if (!ValidRoots.Contains(clickedModel.root.name)) return;
 

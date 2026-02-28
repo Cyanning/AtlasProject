@@ -1,21 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using Plugins.C_.models;
 
+
 namespace Plugins.C_
 {
-    [Serializable]
-    public class BoneMaps
-    {
-        public Texture2D essence;
-        public Dictionary<int, Texture2D> Invisible = new();
-        public Dictionary<int, Texture2D> Displayed = new();
-    }
-
     public class BoneMarkManager : MonoBehaviour
     {
         private int _markType;
@@ -155,7 +147,7 @@ namespace Plugins.C_
 
         private void LoadForamens()
         {
-            var atlas = gameObject.GetComponent<AtlasWorkflows>().atlas;
+            var atlas = gameObject.GetComponent<AtlasCanvas>().atlas;
             var fileStream = new MyStream(
                 Path.Combine(Application.dataPath, ForamenPathes[atlas.gender]),
                 FileMode.Open, FileAccess.Read, FileShare.None, 1024 * 64, false
