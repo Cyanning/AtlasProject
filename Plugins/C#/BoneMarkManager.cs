@@ -155,7 +155,7 @@ namespace Plugins.C_
 
         private void LoadForamens()
         {
-            var atlas = gameObject.GetComponent<AtlasWorkflows>().GetAtlas();
+            var atlas = gameObject.GetComponent<AtlasWorkflows>().atlas;
             var fileStream = new MyStream(
                 Path.Combine(Application.dataPath, ForamenPathes[atlas.gender]),
                 FileMode.Open, FileAccess.Read, FileShare.None, 1024 * 64, false

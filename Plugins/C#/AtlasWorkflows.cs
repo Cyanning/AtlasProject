@@ -1,32 +1,27 @@
 using System;
 using System.IO;
-using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using Plugins.C_.models;
+using JetBrains.Annotations;
+using Plugins.C_.models.Atlas;
 
 
 namespace Plugins.C_
 {
-    [Serializable]
-    public class Row
-    {
-        public string left;
-        public string right;
-    }
-
     public class AtlasWorkflows : MonoBehaviour
     {
         public string atlasName;
-        public List<Row> matrix;
+        public List<Row> labelsMatrix;
 
+        public AtlasItem atlas; // 缓存图谱对象
+        private int _currentGroupIndex; // 当前打开的组的角标
+        [CanBeNull] private AtlasLabel _activeLabel; // 缓存一个标签点
+
+        private Text _activeInfo;
+        private Text _atlasInfo;
         private MainCameraContraller _camCtrl;
-        private Text _infoPanel;
-
-        private AtlasItem _atlas; // 缓存图谱对象
-        private int _activeGroupIndex; // 当前打开的组的角标
-        private AtlasLabel _activeLable; // 缓存一个标签点
 
         private static readonly HashSet<string> ValidRoots = new()
         {
@@ -36,14 +31,13 @@ namespace Plugins.C_
             "ForamensFemale(Clone)"
         };
 
-        public AtlasItem GetAtlas()
+        private void Awake()
         {
-            if (_atlas == null)
-            {
-                LoadAtlas();
-            }
-
-            return _atlas;
+            // 初始化图谱数据
+            atlas = JsonUtility.FromJson<AtlasItem>(
+                File.ReadAllText(Path.Combine(Application.dataPath, $"Atlas_database/atlas_{atlasName}.json"))
+            );
+            _currentGroupIndex = -1;
         }
 
         private void Start()
@@ -58,63 +52,38 @@ namespace Plugins.C_
                 switch (userInterface.name)
                 {
                     case "SetLeftBtn":
-                        userInterface.GetComponent<Button>().onClick.AddListener(SetPoiontAsLeft);
+                        userInterface.GetComponent<Button>().onClick.AddListener(() => AddLabel(0));
                         break;
                     case "SetRightBtn":
-                        userInterface.GetComponent<Button>().onClick.AddListener(SetPoiontAsRight);
+                        userInterface.GetComponent<Button>().onClick.AddListener(() => AddLabel(1));
                         break;
                     case "ChangeGroupBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(ChangeGroup);
                         break;
                     case "CreateGroupsBtn":
-                        userInterface.GetComponent<Button>().onClick.AddListener(CreateGroups);
+                        userInterface.GetComponent<Button>().onClick.AddListener(CreateGroup);
                         break;
                     case "SaveAtlasBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(SaveAtlas);
                         break;
-                    case "GetAtlasCarmeraBtn":
-                        userInterface.GetComponent<Button>().onClick.AddListener(GetAtlasCarmera);
+                    case "ResetCarmeraBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(ResetAtlasCarmera);
                         break;
                     case "SaveAtlasCarmeraBtn":
-                        userInterface.GetComponent<Button>().onClick.AddListener(SaveAtlasCarmera);
+                        userInterface.GetComponent<Button>().onClick.AddListener(SaveAtlasItemCarmera);
                         break;
-                    case "LableInfo":
-                        _infoPanel = userInterface.GetComponent<Text>();
+                    case "AtlasInfo":
+                        _atlasInfo = userInterface.GetComponent<Text>();
+                        break;
+                    case "ActiveInfo":
+                        _activeInfo = userInterface.GetComponent<Text>();
                         break;
                 }
             }
 
-            // 初始化数据
-            LoadAtlas();
-            _atlas.groups = new List<AtlasGroup>();
-            matrix = new List<Row>();
-
-            // 读取点文件
-            var dataPath = Path.Combine(Application.dataPath, $"Atlas_database/Atlas_{_atlas.name}_lables");
-            if (Directory.Exists(dataPath))
-            {
-                foreach (var filepath in Directory.EnumerateFiles(dataPath)) // 读取历史数据
-                {
-                    // 检查后缀
-                    if (!filepath.EndsWith(".json")) continue;
-
-                    // 检查文件名前后缀是否完整
-                    var startIdx = filepath.LastIndexOf("No_", StringComparison.Ordinal);
-                    var endIdx = filepath.LastIndexOf("_Group_lables", StringComparison.Ordinal);
-                    if (startIdx == -1 || endIdx == -1) continue;
-
-                    // 遍历标签组文件并存储为对象
-                    _atlas.groups.Add(JsonUtility.FromJson<AtlasGroup>(File.ReadAllText(filepath)));
-                }
-
-                // 生成标签矩阵
-                if (_atlas.groups.Count > 0) LabelsConvertToLabelMatrix();
-            }
-            // 若不存在创建文件夹
-            else Directory.CreateDirectory(dataPath);
-
-            UpdateInfoPanel();
-            Debug.Log("数据初始化完成");
+            // 界面显示初始化
+            LabelsConvertToLabellabelsMatrix();
+            UpdateActiveInfo();
         }
 
         public void Clicked(RaycastHit raycast) // 传入射线坐标
@@ -122,10 +91,10 @@ namespace Plugins.C_
             var clickedModel = raycast.transform;
             if (!ValidRoots.Contains(clickedModel.root.name)) return;
 
-            var raycastPoint = raycast.point;
             var prefabNames = clickedModel.name.Split("~");
             var timestamp = new DateTimeOffset(DateTime.Now).ToUnixTimeMilliseconds();
-            _activeLable = new AtlasLabel
+            var raycastPoint = raycast.point;
+            _activeLabel = new AtlasLabel
             {
                 name = prefabNames[0] + "_" + timestamp.ToString()[^4..],
                 value = Convert.ToInt32(prefabNames[1]),
@@ -133,244 +102,207 @@ namespace Plugins.C_
                 pointPositionY = raycastPoint.y,
                 pointPositionZ = raycastPoint.z,
             };
-            UpdateInfoPanel();
+            UpdateActiveInfo();
         }
 
-        private void SetPoiontAsLeft()
+        // 设置标签位置
+        private void AddLabel(int location)
         {
-            if (_activeLable == null)
+            // 确保有标签点位信息和启用中的标签组
+            if (_activeLabel is null) return;
+            if (_currentGroupIndex < 0)
             {
-                Debug.Log("当前无标签坐标");
+                UpdateActiveInfo("请先创建标签组");
                 return;
             }
 
-            _activeLable.location = 0;
-            var targetLocaltionOrderNum = GetLocaltionOrderNum()[0];
-            if (targetLocaltionOrderNum == -1)
-            {
-                matrix.Add(new Row { left = _activeLable.name });
-            }
-            else
-            {
-                matrix[targetLocaltionOrderNum].left = _activeLable.name;
-            }
+            // 添加标签数据
+            var orderNum = GetOrderNum(location);
+            labelsMatrix[orderNum][location] = _activeLabel.name;
+            labelsMatrix[orderNum].SetState(location,true);
+            _activeLabel.location = 1;
+            _activeLabel.orderNum = orderNum;
+            atlas.groups[_currentGroupIndex].labels.Add(_activeLabel);
 
-            _atlas.groups[_activeGroupIndex].labels.Add(_activeLable);
-            _activeLable = null;
-            Debug.Log("当前标签已添加");
+            UpdateActiveInfo("当前标签已添加成功");
         }
 
-        private void SetPoiontAsRight()
+        // 从上至下找出为空的标签位置, 返回是否有历史空位，附带输出序号
+        private int GetOrderNum(int location)
         {
-            if (_activeLable == null)
+            var orderNum = 0;
+            while (orderNum < labelsMatrix.Count)
             {
-                Debug.Log("当前无标签坐标");
-                return;
+                if (string.IsNullOrEmpty(labelsMatrix[orderNum][location]))
+                    return orderNum;
+                orderNum++;
             }
 
-            _activeLable.location = 1;
-            var targetLocaltionOrderNum = GetLocaltionOrderNum()[1];
-            if (targetLocaltionOrderNum == -1)
-            {
-                matrix.Add(new Row { right = _activeLable.name });
-            }
-            else
-            {
-                matrix[targetLocaltionOrderNum].right = _activeLable.name;
-            }
-
-            _atlas.groups[_activeGroupIndex].labels.Add(_activeLable);
-            _activeLable = null;
-            Debug.Log("当前标签已添加");
+            labelsMatrix.Add(new Row());
+            return orderNum;
         }
 
-        private void CreateGroups()
+        private void CreateGroup()
         {
             var pos = _camCtrl.GetMainCameraPostion();
             var rot = _camCtrl.GetMainCameraRotation();
-            _atlas.groups.Add(new AtlasGroup
+            atlas.groups.Add(new AtlasGroup
             {
-                labels = new List<AtlasLabel>(),
                 cameraPositionX = pos.x,
                 cameraPositionY = pos.y,
                 cameraPositionZ = pos.z,
                 cameraRotationX = rot.x,
                 cameraRotationY = rot.y,
-                cameraRotationZ = rot.z
+                cameraRotationZ = rot.z,
+                labels = new List<AtlasLabel>()
             });
-            _activeGroupIndex = _atlas.groups.Count - 1;
-            UpdateInfoPanel();
-            Debug.Log("创建组成功");
+            _currentGroupIndex = atlas.groups.Count - 1;
+            UpdateActiveInfo("创建标签组成功");
         }
 
+        // 切换当前标签组
         private void ChangeGroup()
         {
-            // 切换当前标签组
-            if (_activeGroupIndex >= 0 && _activeGroupIndex < _atlas.groups.Count - 1) _activeGroupIndex++;
-            else _activeGroupIndex = 0;
+            // 循环角标
+            _currentGroupIndex = (_currentGroupIndex + 1) % atlas.groups.Count;
 
+            // 标签组视角
+            var group = atlas.groups[_currentGroupIndex];
             _camCtrl.SetCameraTransform(
-                _atlas.groups[_activeGroupIndex].cameraPositionX,
-                _atlas.groups[_activeGroupIndex].cameraPositionY,
-                _atlas.groups[_activeGroupIndex].cameraPositionZ,
-                _atlas.groups[_activeGroupIndex].cameraRotationX,
-                _atlas.groups[_activeGroupIndex].cameraRotationY,
-                _atlas.groups[_activeGroupIndex].cameraRotationZ
+                group.cameraPositionX, group.cameraPositionY, group.cameraPositionZ,
+                group.cameraRotationX, group.cameraRotationY, group.cameraRotationZ
             );
+            SetLabelsMatrixStates();
+            UpdateActiveInfo("已切换标签组");
+        }
 
-            UpdateInfoPanel();
+        // 设置图谱初始视角
+        private void SaveAtlasItemCarmera()
+        {
+            var pos = _camCtrl.GetMainCameraPostion();
+            var rot = _camCtrl.GetMainCameraRotation();
+            atlas.cameraPositionX = pos.x;
+            atlas.cameraPositionY = pos.y;
+            atlas.cameraPositionZ = pos.z;
+            atlas.cameraRotationX = rot.x;
+            atlas.cameraRotationY = rot.y;
+            atlas.cameraRotationZ = rot.z;
+            UpdateActiveInfo("图谱初始视角已记录");
+        }
+
+        // 视角复位
+        private void ResetAtlasCarmera()
+        {
+            _camCtrl.SetCameraTransform(
+                atlas.cameraPositionX, atlas.cameraPositionY, atlas.cameraPositionZ,
+                atlas.cameraRotationX, atlas.cameraRotationY, atlas.cameraRotationZ
+            );
         }
 
         private void SaveAtlas()
         {
-            if (_atlas.groups.Count == 0 || matrix.Count == 0) return;
-            LabelMatrixConvertToLabels();
-
-            for (var i = 0; i < _atlas.groups.Count; i++)
-            {
-                File.WriteAllText(
-                    Path.Combine(
-                        Application.dataPath, $"Atlas_database/Atlas_{_atlas.name}_lables/No_{i}_Group_lables.json"
-                    ),
-                    JsonUtility.ToJson(_atlas.groups[i])
-                );
-            }
-
-            _activeLable = null;
-            UpdateInfoPanel();
-            Debug.Log("图谱存储成功");
-        }
-
-        private void LoadAtlas()
-        {
-            try
-            {
-                _atlas = JsonUtility.FromJson<AtlasItem>(
-                    File.ReadAllText(Path.Combine(Application.dataPath, $"Atlas_database/atlas_{atlasName}.json"))
-                );
-                atlasName = _atlas.name;
-            }
-            catch (FileNotFoundException)
-            {
-                Debug.LogWarning($"没有发现 {atlasName} 的数据文件");
-            }
-        }
-
-        private void SaveAtlasCarmera()
-        {
-            var pos = _camCtrl.GetMainCameraPostion();
-            var rot = _camCtrl.GetMainCameraRotation();
-            _atlas.cameraPositionX = pos.x;
-            _atlas.cameraPositionY = pos.y;
-            _atlas.cameraPositionZ = pos.z;
-            _atlas.cameraRotationX = rot.x;
-            _atlas.cameraRotationY = rot.y;
-            _atlas.cameraRotationZ = rot.z;
+            atlas.name = atlasName;
+            LabellabelsMatrixConvertToLabels();
 
             File.WriteAllText(
-                Path.Combine(Application.dataPath, $"Atlas_database/Atlas_{_atlas.name}.json"),
-                JsonUtility.ToJson(_atlas)
+                Path.Combine(Application.dataPath, $"Atlas_database/Atlas_{atlas.name}.json"),
+                JsonUtility.ToJson(atlas)
             );
-            Debug.Log("图谱初始视角已设置");
+
+            _currentGroupIndex = -1;
+            UpdateActiveInfo("图谱存储成功");
         }
 
-        private void GetAtlasCarmera()
+        // 更新显示的数据
+        private void UpdateActiveInfo(string tipsInfo = null)
         {
-            // 设置初始视角
-            _camCtrl.SetCameraTransform(
-                _atlas.cameraPositionX, _atlas.cameraPositionY, _atlas.cameraPositionZ,
-                _atlas.cameraRotationX, _atlas.cameraRotationY, _atlas.cameraRotationZ
-            );
-        }
-
-        private void UpdateInfoPanel()
-        {
-            // 更新显示的数据
-            var content = $"Group Order Number: {_activeGroupIndex + 1} / {_atlas.groups.Count}\n";
-
-            if (_atlas.groups.Count > 0)
+            var groupsSum = atlas.groups.Count;
+            var groupOrder = "-";
+            var labelsSum = "-";
+            if (groupsSum > 0 && _currentGroupIndex >= 0)
             {
-                content += $"Labels Number: {_atlas.groups[_activeGroupIndex].labels.Count}\n";
+                groupOrder = $"{_currentGroupIndex + 1}";
+                labelsSum = $"{atlas.groups[_currentGroupIndex].labels.Count}";
             }
 
+            _atlasInfo.text =
+                $"当前标签组序号/总组数: {groupOrder} / {groupsSum}\n当前组的标签总数: {labelsSum}";
 
-            if (_activeLable != null)
+            if (tipsInfo is not null)
             {
-                content += "~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" +
-                           $"Value: {_activeLable.value}\n" +
-                           $"Name: {_activeLable.name}\n" +
-                           $"X: {_activeLable.pointPositionX},\n" +
-                           $"Y: {_activeLable.pointPositionY},\n" +
-                           $"Z: {_activeLable.pointPositionZ}";
+                _activeInfo.text = tipsInfo;
+                _activeLabel = null;
             }
-
-            _infoPanel.text = content;
-        }
-
-        // 从上至下找出为空的标签位置，若无空位返回值为-1
-        private int[] GetLocaltionOrderNum()
-        {
-            LabelMatrixConvertToLabels();
-            var orderNums = new[] { -1, -1 };
-            for (var i = 0; i < matrix.Count; i++)
+            else if (_activeLabel is not null)
             {
-                if (string.IsNullOrEmpty(matrix[i].left))
-                {
-                    orderNums[0] = i;
-                }
-
-                if (string.IsNullOrEmpty(matrix[i].right))
-                {
-                    orderNums[1] = i;
-                }
+                _activeInfo.text =
+                    $"Value: {_activeLabel.value}\n" +
+                    $"Name: {_activeLabel.name}\n" +
+                    $"X: {_activeLabel.pointPositionX}\n" +
+                    $"Y: {_activeLabel.pointPositionY}\n" +
+                    $"Z: {_activeLabel.pointPositionZ}\n";
             }
-
-            return orderNums;
+            else
+            {
+                _activeInfo.text = "-";
+            }
         }
 
         // 将标签位置矩阵记录的位置赋值给标签实例
-        private void LabelMatrixConvertToLabels()
+        private void LabellabelsMatrixConvertToLabels()
         {
-            var labelsMap = _atlas.groups
+            // 将标签全部提取出来名字映射，变成 { name: atlasLabel} 的结构
+            var labelsMap = atlas.groups
                 .SelectMany(static group => group.labels)
                 .ToDictionary(static lab => lab.name);
 
-            for (var i = 0; i < matrix.Count; i++)
+            for (var i = 0; i < labelsMatrix.Count; i++)
             {
-                if (labelsMap.TryGetValue(matrix[i].left, out var labelLeft))
+                for (var location = 0; location < 2; location++)
                 {
-                    labelLeft.orderNum = i;
-                    labelLeft.location = 0;
-                }
-
-                if (labelsMap.TryGetValue(matrix[i].right, out var labelRight))
-                {
-                    labelRight.orderNum = i;
-                    labelRight.location = 1;
+                    var key = labelsMatrix[i][location];
+                    if (!string.IsNullOrEmpty(key) && labelsMap.TryGetValue(key, out var label))
+                    {
+                        label.orderNum = i;
+                        label.location = location;
+                    }
                 }
             }
         }
 
         // 根据标签实例的数据生成标签矩阵
-        private void LabelsConvertToLabelMatrix()
+        private void LabelsConvertToLabellabelsMatrix()
         {
-            // 讲标签全部提取出来按上下顺序编组，变成 { row_num: label} 的结构
-            var labelsMap = _atlas.groups
+            labelsMatrix = new List<Row>();
+            if (atlas.groups.Count == 0) return;
+
+            // 将标签全部提取出来按上下顺序编组，变成 { row_num: labels[2]} 的结构
+            var labelsMap = atlas.groups
                 .SelectMany(static group => group.labels)
                 .GroupBy(static label => label.orderNum)
                 .ToDictionary(
                     static lab => lab.Key, static lab => lab.ToList()
                 );
 
-            matrix.Clear();
             foreach (var item in labelsMap.OrderBy(static kv => kv.Key))
             {
                 var row = item.Value;
-                if (row[0].location == 0 && row[1].location == 1)
-                    matrix.Add(new Row { left = row[0].name, right = row[1].name });
-                else
-                    matrix.Add(new Row { left = row[1].name, right = row[0].name });
+                var newRow = new Row();
+                foreach (var cell in row)
+                    newRow[cell.location] = cell.name;
+                labelsMatrix.Add(newRow);
             }
+        }
+
+        //根据当前开启的组 设置row的标签状态
+        private void SetLabelsMatrixStates()
+        {
+            var labelNames =
+                atlas.groups[_currentGroupIndex].labels.Select(static l => l.name).ToHashSet();
+
+            foreach (var row in labelsMatrix)
+                for (var location = 0; location < 2; location++)
+                    row.SetState(location, labelNames.Contains(row[location]));
         }
     }
 }

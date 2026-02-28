@@ -1,6 +1,6 @@
 using UnityEditor;
 using UnityEngine;
-using Plugins.C_;
+using Plugins.C_.models.Atlas;
 
 
 namespace Editor
@@ -34,15 +34,17 @@ namespace Editor
             var rFieldRect = new Rect(rLabelRect.xMax, position.y, fieldWidth, position.height);
 
             // 获取属性
-            var lProp = property.FindPropertyRelative("l");
-            var rProp = property.FindPropertyRelative("r");
+            var leftName = property.FindPropertyRelative("left");
+            var rightName = property.FindPropertyRelative("right");
+            var leftState = property.FindPropertyRelative("leftState").boolValue? "*" : "";
+            var rightState = property.FindPropertyRelative("rightState").boolValue? "*" : "";
 
             // 绘制 L/R 标签与输入框
-            EditorGUI.LabelField(lLabelRect, "L");
-            EditorGUI.PropertyField(lFieldRect, lProp, GUIContent.none);
+            EditorGUI.LabelField(lLabelRect, leftState);
+            EditorGUI.PropertyField(lFieldRect, leftName, GUIContent.none);
 
-            EditorGUI.LabelField(rLabelRect, "R");
-            EditorGUI.PropertyField(rFieldRect, rProp, GUIContent.none);
+            EditorGUI.LabelField(rLabelRect, rightState);
+            EditorGUI.PropertyField(rFieldRect, rightName, GUIContent.none);
 
             EditorGUI.indentLevel = indent;
             EditorGUI.EndProperty();
