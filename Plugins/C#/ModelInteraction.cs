@@ -8,24 +8,26 @@ namespace Plugins.C_
 {
     public class ModelInteraction : MonoBehaviour
     {
-        public static List<ObjectColorModel> lastObject = new List<ObjectColorModel>();
+        public static readonly List<ObjectColorModel> LastObject = new ();
+        private static GameObject _mainCamera;
+        private static Color _lastColor;
+        private static AtlasCanvas _atlasCanvas;
+
         public Vector3 center;
         public long beginTime;
         public long lastClickTime;
 
-        public static Color lastColor;
-        public bool clickState;
-
-        private GameObject _mainCamera;
         private FingerTouchForLittle _fingerTouch;
         private ClickEvent _clickEvent;
         private static readonly int StateColor = Shader.PropertyToID("_Color");
+        private static readonly int Transprent = Shader.PropertyToID("_Transprent");
 
         public void Start()
         {
             _mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
             _fingerTouch = _mainCamera.GetComponent<FingerTouchForLittle>();
             _clickEvent = _mainCamera.GetComponent<ClickEvent>();
+            _atlasCanvas = GameObject.FindGameObjectWithTag("GameController").GetComponent<AtlasCanvas>();
         }
 
         public void OnClickCubeItem(UnityEngine.EventSystems.BaseEventData data = null)
@@ -50,7 +52,6 @@ namespace Plugins.C_
                 return;
             }
 
-            clickState = !clickState;
             var targetRenderer = transform.gameObject.GetComponent<MeshRenderer>();
 
             if (_clickEvent.showType == 0)
@@ -92,10 +93,10 @@ namespace Plugins.C_
                     tweener.SetUpdate(true);
                     tweener.SetEase(Ease.Linear);
                     tweener.SetAutoKill(true);
-                    tweener.onComplete = delegate()
+                    tweener.onComplete = static delegate
                     {
                         ClickEvent.isMoveAnima = false;
-                        SendClickToApp();
+                        ClickEventTrigger();
                     };
                     tweener.onKill = static delegate { };
                 }
@@ -103,14 +104,14 @@ namespace Plugins.C_
                 {
                     //string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
                     //_clickEvent.SetAlpha(clickModelName);
-                    SendClickToApp();
+                    ClickEventTrigger();
                 }
             }
             else
             {
                 //string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
                 //_clickEvent.SetAlpha(clickModelName);
-                SendClickToApp();
+                ClickEventTrigger();
             }
 
 
@@ -118,26 +119,26 @@ namespace Plugins.C_
 
             if (!ClickEvent.isAutoDisable)
             {
-                var lastColor = transform.gameObject.GetComponent<MeshRenderer>().material.GetColor(StateColor);
-                if (_clickEvent.showType == 0 && lastObject.Count > 0 &&
-                    lastObject[^1].Obj.transform.name.Equals(transform.name))
+                _lastColor = transform.gameObject.GetComponent<MeshRenderer>().material.GetColor(StateColor);
+                if (_clickEvent.showType == 0 && LastObject.Count > 0 &&
+                    LastObject[^1].Obj.transform.name.Equals(transform.name))
                 {
                     return;
                 }
 
                 //Boolean isClicked = false;
-                foreach (var m in lastObject)
+                foreach (var m in LastObject)
                 {
                     if (m.Obj == transform.gameObject)
                     {
-                        lastColor = m.LastColor;
+                        _lastColor = m.LastColor;
                     }
                 }
 
 
                 if (!ClickEvent.isManyChoose || _clickEvent.showType == 2)
                 {
-                    foreach (var m in lastObject)
+                    foreach (var m in LastObject)
                     {
                         if (m.Obj is null) continue;
                         if (_clickEvent.showType == 3)
@@ -155,7 +156,7 @@ namespace Plugins.C_
                         }
                     }
 
-                    lastObject.Clear();
+                    LastObject.Clear();
                 }
 
                 Color nowColor;
@@ -176,87 +177,52 @@ namespace Plugins.C_
 
                 SetMeshColor(targetRenderer, nowColor, _clickEvent.isShowLittle);
 
-                var model = new ObjectColorModel {Obj = transform.gameObject, LastColor = lastColor};
-                if (lastColor != nowColor)
+                var model = new ObjectColorModel {Obj = transform.gameObject, LastColor = _lastColor};
+                if (_lastColor != nowColor)
                 {
-                    lastObject.Add(model);
+                    LastObject.Add(model);
                 }
             }
-            else
-            {
-                var clickModelName =
-                    transform.name[(transform.name.LastIndexOf("~", StringComparison.Ordinal) + 1)..];
-            }
+            // else
+            // {
+            //     var clickModelName =
+            //         transform.name[(transform.name.LastIndexOf("~", StringComparison.Ordinal) + 1)..];
+            // }
         }
 
-        private void SendClickToApp()
+        private static void ClickEventTrigger()
         {
-            string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1) + ";";
-            if (clickModelName.Equals("default;"))
-            {
-                clickModelName = transform.parent.parent.name.Replace("(Clone)", "") + "_" + transform.parent.name;
-            }
-            else
-            {
-                Transform parent = transform;
-
-                while (parent.parent != null)
-                {
-                    parent = parent.transform.parent;
-                    clickModelName += parent.name.Substring(parent.name.LastIndexOf("~") + 1) + ";";
-                }
-
-                if (clickModelName.EndsWith(";"))
-                {
-                    clickModelName = clickModelName.Substring(0, clickModelName.Length - 1);
-                }
-            }
+            _atlasCanvas.CreateActiveLabel();
         }
 
-        //对象移动时调用
-        void AnimationEnd(string f)
+        private static string GetGameObjectPath(Transform outTransform)
         {
-            /*        GameObject camera = GameObject.Find("Camera");
-                    camera.transform.rotation = Quaternion.Euler(0, -360, 0);
-                    Debug.Log("end : " + f);*/
-        }
-
-        //对象移动时调用
-        void AnimationUpdate(bool b)
-        {
-            /*        GameObject camera = GameObject.Find("Camera");
-                    transform.LookAt(center);*/
-        }
-
-        private string GetGameObjectPath(Transform transform)
-        {
-            string path = transform.name;
-            while (transform.parent != null)
+            var tree = outTransform.name;
+            while (outTransform.parent != null)
             {
-                transform = transform.parent;
-                path = transform.name + "/" + path;
+                outTransform = outTransform.parent;
+                tree = outTransform.name + "/" + tree;
             }
 
-            return path;
+            return tree;
         }
 
 
         //修改选中mesh的颜色 ，所有mesh默认为：白色
-        public void SetMeshColor(MeshRenderer meshRenderer, Color32 color, bool isShowLittle)
+        private static void SetMeshColor(Renderer meshRenderer, Color32 color, bool isShowLittle)
         {
             if (meshRenderer != null)
             {
                 if (isShowLittle)
                 {
-                    Color nowColor;
-                    ColorUtility.TryParseHtmlString("#00FF00", out nowColor);
-                    meshRenderer.material.SetColor("_Color", nowColor);
+                    ColorUtility.TryParseHtmlString("#00FF00", out var nowColor);
+                    meshRenderer.material.SetColor(StateColor, nowColor);
                     //meshRenderer.material.SetTexture("_MainTex", null);
                 }
                 else
                 {
                     //meshRenderer.material.EnableKeyword("_EMISSION");
-                    meshRenderer.material.SetColor("_Color", color);
+                    meshRenderer.material.SetColor(StateColor, color);
                     //Texture texture = meshRenderer.material.GetTexture("_MainTex");
                     //meshRenderer.material.SetTexture("_EmissionMap", texture);
                 }
@@ -268,7 +234,7 @@ namespace Plugins.C_
         {
             if (meshRenderer != null)
             {
-                meshRenderer.material.SetFloat("_Transprent", alpha);
+                meshRenderer.material.SetFloat(Transprent, alpha);
             }
         }
 
@@ -288,16 +254,16 @@ namespace Plugins.C_
             }
         }
 
-        public Vector3 GetEndPointByTrigonometric1(Vector3 angle, Vector3 StartPoint, float distance)
+        public Vector3 GetEndPointByTrigonometric1(Vector3 angle, Vector3 startPoint, float distance)
         {
-            Vector3 EndPoint = getEndPoint1(StartPoint, angle, distance);
+            var endPoint = GetEndPoint1(startPoint, angle, distance);
 
-            return EndPoint;
+            return endPoint;
         }
 
-        public Vector3 getEndPoint1(Vector3 startPoint, Vector3 angle, float distance)
+        private Vector3 GetEndPoint1(Vector3 startPoint, Vector3 angle, float distance)
         {
-            Vector3 EndPoint = new Vector3();
+            var endPoint = new Vector3();
             //角度转弧度
             var radianX = (angle.x * Math.PI) / 180;
             var radianY = (angle.y * Math.PI) / 180;
@@ -309,32 +275,32 @@ namespace Plugins.C_
 
             if (transform.position.x > startPoint.x)
             {
-                EndPoint.x = startPoint.x + float.Parse((distance * Math.Cos(radianX)).ToString());
+                endPoint.x = startPoint.x + (float)(distance * Math.Cos(radianX));
             }
             else
             {
-                EndPoint.x = startPoint.x - float.Parse((distance * Math.Cos(radianX)).ToString());
+                endPoint.x = startPoint.x - (float)(distance * Math.Cos(radianX));
             }
 
             if (transform.position.y > startPoint.y)
             {
-                EndPoint.y = startPoint.y - float.Parse((distance * Math.Cos(radianY)).ToString());
+                endPoint.y = startPoint.y - (float)(distance * Math.Cos(radianY));
             }
             else
             {
-                EndPoint.y = startPoint.y + float.Parse((distance * Math.Cos(radianY)).ToString());
+                endPoint.y = startPoint.y + (float)(distance * Math.Cos(radianY));
             }
 
             if (transform.position.z > startPoint.z)
             {
-                EndPoint.z = startPoint.z + float.Parse((distance * Math.Sin(radianZ)).ToString());
+                endPoint.z = startPoint.z + (float)(distance * Math.Sin(radianZ));
             }
             else
             {
-                EndPoint.z = startPoint.z - float.Parse((distance * Math.Sin(radianZ)).ToString());
+                endPoint.z = startPoint.z - (float)(distance * Math.Sin(radianZ));
             }
 
-            return EndPoint;
+            return endPoint;
         }
     }
 }

@@ -18,7 +18,7 @@ namespace Plugins.C_
                 Ray ray = Camera.main.ScreenPointToRay(startPos);
                 if (Physics.Raycast(ray, out RaycastHit rayHitInfo))//使用默认射线长度和其他默认参数
                 {
-                    foreach (ObjectColorModel objInfo in ModelInteraction.lastObject)
+                    foreach (ObjectColorModel objInfo in ModelInteraction.LastObject)
                     {
                         if (objInfo.Obj.transform.name.Equals(rayHitInfo.transform.name))
                         {

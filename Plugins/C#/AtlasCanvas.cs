@@ -87,9 +87,9 @@ namespace Plugins.C_
         }
 
         // 获取与模型交互的信息
-        public void LateUpdate()
+        public void CreateActiveLabel()
         {
-            if (!_camCtrl.Clicked(out var raycast)) return;
+            if (!_camCtrl.GetPoint(out var raycast)) return;
 
             var clickedModel = raycast.transform;
             if (!ValidRoots.Contains(clickedModel.root.name)) return;

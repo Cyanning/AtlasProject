@@ -591,13 +591,13 @@ namespace Plugins.C_
 
 
         // Update is called once per frame
-        void Update()
+        private void Update()
         {
             if (isPlayAnimation)
             {
                 if (animator != null)
                 {
-                    float playProgress = animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
+                    var playProgress = animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
                     SendAnimationProgress(Convert.ToInt16(playProgress * 100));
                 }
             }
@@ -2111,7 +2111,7 @@ namespace Plugins.C_
                         model.LastColor = color;
                         if (color != nowColor)
                         {
-                            ModelInteraction.lastObject.Add(model);
+                            ModelInteraction.LastObject.Add(model);
                         }
                     }
                 }
@@ -2120,9 +2120,9 @@ namespace Plugins.C_
 
         public void CancelSelect(string str)
         {
-            if (ModelInteraction.lastObject != null)
+            if (ModelInteraction.LastObject != null)
             {
-                foreach (ObjectColorModel m in ModelInteraction.lastObject)
+                foreach (var m in ModelInteraction.LastObject)
                 {
                     if (m.Obj != null)
                     {
@@ -2146,7 +2146,7 @@ namespace Plugins.C_
                     }
                 }
 
-                ModelInteraction.lastObject.Clear();
+                ModelInteraction.LastObject.Clear();
             }
 
             GetCenter();

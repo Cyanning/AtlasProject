@@ -9,20 +9,15 @@ namespace Plugins.C_
     {
         private Transform splitMoveTrans;
         private Vector3 offset;
-        // Start is called before the first frame update
-        void Start()
-        {
 
-        }
-
-        void Update()
+        private void Update()
         {
 
             if (Input.GetMouseButtonDown(0))
             {
                 Vector2 startPos = Input.mousePosition;
 
-                foreach (ObjectColorModel objInfo in ModelInteraction.lastObject)
+                foreach (ObjectColorModel objInfo in ModelInteraction.LastObject)
                 {
                     if (objInfo.Obj.transform.name.Equals(transform.name))
                     {
@@ -40,8 +35,8 @@ namespace Plugins.C_
             {
                 if (splitMoveTrans)
                 {
-                    Vector2 startPos = Input.mousePosition;
-                    Vector3 newPosition = Camera.main.ScreenToWorldPoint(new Vector3(startPos.x, startPos.y, transform.position.z)) + offset;
+                    var startPos = Input.mousePosition;
+                    var newPosition = Camera.main.ScreenToWorldPoint(new Vector3(startPos.x, startPos.y, transform.position.z)) + offset;
                     //Vector3 movePosition = new Vector3(newPosition.x, newPosition.y, 1);
                     transform.position = new Vector3(-newPosition.x, -newPosition.y, -0.13F); // 保持z轴不变，仅平移x和y轴
 
