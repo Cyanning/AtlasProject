@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
-using System;
+using UnityEngine.EventSystems;
 using DG.Tweening;
 using Plugins.C_.models;
 
@@ -15,7 +16,7 @@ namespace Plugins.C_
 
         public Vector3 center;
         public long beginTime;
-        public long lastClickTime;
+        private float _lastClickTime;
 
         private FingerTouchForLittle _fingerTouch;
         private ClickEvent _clickEvent;
@@ -30,35 +31,24 @@ namespace Plugins.C_
             _atlasCanvas = GameObject.FindGameObjectWithTag("GameController").GetComponent<AtlasCanvas>();
         }
 
-        public void OnClickCubeItem(UnityEngine.EventSystems.BaseEventData data = null)
+        public void OnClickCubeItem(BaseEventData data = null)
         {
-            if (_fingerTouch.isDrag)
-            {
-                return;
-            }
+            if (_fingerTouch.isDrag) return;
 
-            if (_fingerTouch.supplyTouchType != 0)
-            {
-                return;
-            }
+            if (_fingerTouch.supplyTouchType != 0) return;
 
-            if (ClickEvent.isMoveAnima)
-            {
-                return;
-            }
+            if (data is not PointerEventData {button: PointerEventData.InputButton.Left} ) return;
+
+            if (ClickEvent.isMoveAnima) return;
     
-            if (_clickEvent.showType is not (0 or 2 or 3 or 5))
-            {
-                return;
-            }
+            if (_clickEvent.showType is not (0 or 2 or 3 or 5)) return;
 
             var targetRenderer = transform.gameObject.GetComponent<MeshRenderer>();
 
             if (_clickEvent.showType == 0)
             {
-                var timeSpan = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
-                var nowTime = Convert.ToInt64(timeSpan.TotalSeconds);
-                var isMove = nowTime - lastClickTime <= 0.8F;  // 是否开启移动动画
+                var currentTime = Time.unscaledTime;
+                var isMove = currentTime - _lastClickTime <= 0.5f;  // 是否开启移动动画
 
                 if (_clickEvent.isResetStatus)
                 {
@@ -66,7 +56,7 @@ namespace Plugins.C_
                     _clickEvent.isResetStatus = false;
                 }
 
-                lastClickTime = nowTime;
+                _lastClickTime = currentTime;
                 var bounds = targetRenderer.bounds;
                 center = bounds.center;
                 ClickEvent.RotationCenter = center;
@@ -93,10 +83,10 @@ namespace Plugins.C_
                     tweener.SetUpdate(true);
                     tweener.SetEase(Ease.Linear);
                     tweener.SetAutoKill(true);
-                    tweener.onComplete = static delegate
+                    tweener.onComplete = delegate
                     {
                         ClickEvent.isMoveAnima = false;
-                        ClickEventTrigger();
+                        _atlasCanvas.CreateActiveLabel(transform);
                     };
                     tweener.onKill = static delegate { };
                 }
@@ -104,14 +94,14 @@ namespace Plugins.C_
                 {
                     //string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
                     //_clickEvent.SetAlpha(clickModelName);
-                    ClickEventTrigger();
+                    _atlasCanvas.CreateActiveLabel(transform);
                 }
             }
             else
             {
                 //string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
                 //_clickEvent.SetAlpha(clickModelName);
-                ClickEventTrigger();
+                _atlasCanvas.CreateActiveLabel(transform);
             }
 
 
@@ -188,11 +178,6 @@ namespace Plugins.C_
             //     var clickModelName =
             //         transform.name[(transform.name.LastIndexOf("~", StringComparison.Ordinal) + 1)..];
             // }
-        }
-
-        private static void ClickEventTrigger()
-        {
-            _atlasCanvas.CreateActiveLabel();
         }
 
         private static string GetGameObjectPath(Transform outTransform)

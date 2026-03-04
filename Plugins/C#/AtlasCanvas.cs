@@ -5,14 +5,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using JetBrains.Annotations;
-using Plugins.C_.models.Atlas;
+using Plugins.C_.models;
 
 
 namespace Plugins.C_
 {
     public class AtlasCanvas : MonoBehaviour
     {
-        public string atlasName;
+        public string atlasFile;
         public List<Row> labelsMatrix;
 
         public AtlasItem atlas; // 缓存图谱对象
@@ -31,12 +31,21 @@ namespace Plugins.C_
             "ForamensFemale(Clone)"
         };
 
+        private string AtlasPath()
+        {
+            var folders = atlasFile.Split(
+                new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+                StringSplitOptions.RemoveEmptyEntries
+            );
+            folders[^1] = $"atlas_{folders[^1]}.json";
+            return Path.Combine(Application.dataPath, string.Join(Path.DirectorySeparatorChar, folders));
+        }
+
         private void Awake()
         {
+
             // 初始化图谱数据
-            atlas = JsonUtility.FromJson<AtlasItem>(
-                File.ReadAllText(Path.Combine(Application.dataPath, $"Atlas_database/atlas_{atlasName}.json"))
-            );
+            atlas = JsonUtility.FromJson<AtlasItem>(File.ReadAllText(AtlasPath()));
             _currentGroupIndex = -1;
         }
 
@@ -86,29 +95,27 @@ namespace Plugins.C_
             UpdateActiveInfo();
         }
 
-        // 获取与模型交互的信息
-        public void CreateActiveLabel()
+        // 创建一个标签点位缓存
+        public void CreateActiveLabel(Transform clickedModel)
         {
-            if (!_camCtrl.GetPoint(out var raycast)) return;
-
-            var clickedModel = raycast.transform;
-            if (!ValidRoots.Contains(clickedModel.root.name)) return;
+            if (!(ValidRoots.Contains(clickedModel.root.name) && _camCtrl.GetPoint(out var point)))
+                return;
 
             var prefabNames = clickedModel.name.Split("~");
             var timestamp = new DateTimeOffset(DateTime.Now).ToUnixTimeMilliseconds();
-            var raycastPoint = raycast.point;
             _activeLabel = new AtlasLabel
             {
                 name = prefabNames[0] + "_" + timestamp.ToString()[^4..],
                 value = Convert.ToInt32(prefabNames[1]),
-                pointPositionX = raycastPoint.x,
-                pointPositionY = raycastPoint.y,
-                pointPositionZ = raycastPoint.z,
+                pointPositionX = point.x,
+                pointPositionY = point.y,
+                pointPositionZ = point.z,
             };
             UpdateActiveInfo();
         }
 
         // 设置标签位置
+        // location: 0为左，1为右，只接受这两个值
         private void AddLabel(int location)
         {
             // 确保有标签点位信息和启用中的标签组
@@ -119,10 +126,12 @@ namespace Plugins.C_
                 return;
             }
 
-            // 添加标签数据
+            // 从上至下找出为空的标签位置, 返回是否有历史空位，附带输出序号
             var orderNum = GetOrderNum(location);
+
+            // 添加标签数据
             labelsMatrix[orderNum][location] = _activeLabel.name;
-            labelsMatrix[orderNum].SetState(location,true);
+            labelsMatrix[orderNum].SetState(location, true);
             _activeLabel.location = 1;
             _activeLabel.orderNum = orderNum;
             atlas.groups[_currentGroupIndex].labels.Add(_activeLabel);
@@ -130,7 +139,6 @@ namespace Plugins.C_
             UpdateActiveInfo("当前标签已添加成功");
         }
 
-        // 从上至下找出为空的标签位置, 返回是否有历史空位，附带输出序号
         private int GetOrderNum(int location)
         {
             var orderNum = 0;
@@ -204,13 +212,14 @@ namespace Plugins.C_
 
         private void SaveAtlas()
         {
-            atlas.name = atlasName;
+            var index = atlasFile.LastIndexOfAny(
+                new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }
+            );
+            atlas.name = atlasFile[index..];
+
             LabellabelsMatrixConvertToLabels();
 
-            File.WriteAllText(
-                Path.Combine(Application.dataPath, $"Atlas_database/Atlas_{atlas.name}.json"),
-                JsonUtility.ToJson(atlas)
-            );
+            File.WriteAllText(AtlasPath(), JsonUtility.ToJson(atlas));
 
             _currentGroupIndex = -1;
             UpdateActiveInfo("图谱存储成功");

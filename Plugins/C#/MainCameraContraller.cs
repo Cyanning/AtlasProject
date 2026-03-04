@@ -5,27 +5,18 @@ namespace Plugins.C_
 {
     public class MainCameraContraller : MonoBehaviour
     {
-        private RaycastHit _raycast;
-        private bool _usable;
         private Camera _cam;
-
-        public bool GetPoint(out RaycastHit raycast)
-        {
-            var usable = _usable;
-            raycast = _raycast;
-            _usable = false;
-            return usable;
-        }
 
         private void Start()
         {
             _cam = GetComponent<Camera>();
         }
 
-        public void Update()
+        public bool GetPoint(out Vector3 point)
         {
-            if (Input.GetMouseButtonDown(0))
-                _usable = Physics.Raycast(_cam.ScreenPointToRay(Input.mousePosition), out _raycast);
+            var result = Physics.Raycast(_cam.ScreenPointToRay(Input.mousePosition), out var raycast);
+            point = raycast.point;
+            return result;
         }
 
         public void SetCameraTransform(float posX, float posY, float posZ, float rotX, float rotY, float rotZ)

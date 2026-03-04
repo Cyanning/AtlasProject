@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using System.IO;
 using System.Linq;
-using Plugins.C_.models.Atlas;
+using Plugins.C_.models;
 
 
 namespace Editor

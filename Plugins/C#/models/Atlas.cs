@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 
 
-namespace Plugins.C_.models.Atlas
+namespace Plugins.C_.models
 {
     [Serializable]
     public class AtlasItem

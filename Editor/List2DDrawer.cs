@@ -1,6 +1,6 @@
 using UnityEditor;
 using UnityEngine;
-using Plugins.C_.models.Atlas;
+using Plugins.C_.models;
 
 
 namespace Editor
