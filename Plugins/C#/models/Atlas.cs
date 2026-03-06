@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using UnityEngine;
 using System.Collections.Generic;
 
 
@@ -44,6 +46,67 @@ namespace Plugins.C_.models
         public float pointPositionX;
         public float pointPositionY;
         public float pointPositionZ;
+    }
+
+    public static class AtlasFactory
+    {
+        // folderName: Atlas_database / {folder} / {atlas name}
+
+        private static string AtlasPath(string folderName)
+        {
+
+            var folders = folderName.Split(
+                new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+                StringSplitOptions.RemoveEmptyEntries
+            );
+            folders[^1] = $"Atlas_{folders[^1]}.json";
+            return Path.Combine(
+                Application.dataPath, "Atlas_database", string.Join(Path.DirectorySeparatorChar, folders)
+            );
+        }
+
+        private static string AtlasName(string folderName)
+        {
+            var index = folderName.LastIndexOfAny(
+                new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }
+            );
+            return  folderName[index..];
+        }
+
+        public static bool Load(string folderName, out AtlasItem atlas)
+        {
+            var path = AtlasPath(folderName);
+            if (File.Exists(path))
+            {
+                atlas = JsonUtility.FromJson<AtlasItem>(File.ReadAllText(path));
+                return true;
+            }
+
+            atlas = new AtlasItem { name = AtlasName(folderName) };
+            return false;
+        }
+
+        public static bool Save(AtlasItem atlas, string folderName=null, bool uniformName=true)
+        {
+            // 若 uniformName 为 true（默认），则将地址中的名字赋值 atlas的 name属性
+            if (folderName is null)
+            {
+                folderName = atlas.name;
+            }
+            else if (uniformName)
+            {
+                atlas.name = AtlasName(folderName);
+            }
+
+            var path =  AtlasPath(folderName);
+            if (File.Exists(path))
+            {
+                File.WriteAllText(path, JsonUtility.ToJson(atlas));
+                return true;
+            }
+
+            return false;
+        }
     }
 
     [Serializable]

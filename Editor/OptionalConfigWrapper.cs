@@ -1,6 +1,8 @@
 using System;
-using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace Editor
 {
@@ -14,6 +16,7 @@ namespace Editor
     [Serializable]
     public class OptionalConfig
     {
+        private const string ConfigJsonPath = "Editor/OptionalConfig.json";
         public TypeItem[] boneMarkTypes;
         public TypeItem[] atlasTypes;
 
@@ -29,6 +32,19 @@ namespace Editor
             {
                 if (flags[i]) yield return typeItems[i].idNum;
             }
+        }
+
+        public static bool ReadConfig(out OptionalConfig config)
+        {
+            var configPath = Path.Combine(Application.dataPath, ConfigJsonPath);
+            if (File.Exists(configPath))
+            {
+                config = JsonUtility.FromJson<OptionalConfig>(File.ReadAllText(configPath));
+                return true;
+            }
+
+            config = null;
+            return false;
         }
     }
 }

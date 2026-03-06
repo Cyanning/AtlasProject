@@ -1,6 +1,5 @@
 using UnityEditor;
 using UnityEngine;
-using System.IO;
 using System.Linq;
 using Plugins.C_.models;
 
@@ -16,7 +15,7 @@ namespace Editor
 
         //MenuItem会在unity菜单栏添加自定义新项
         [MenuItem("自定义功能/创建图谱")]
-        public static void ShowInputWindowMale()
+        public static void ShowWindow()
         {
             GetWindow<AtlasFormMarker>("创建图谱");
         }
@@ -25,10 +24,8 @@ namespace Editor
         {
             _atlas = new AtlasItem();
 
-            var configPath = Path.Combine(Application.dataPath, "Editor/OptionalConfig.json");
-            if (File.Exists(configPath))
+            if (OptionalConfig.ReadConfig(out var optionalConfig))
             {
-                var optionalConfig = JsonUtility.FromJson<OptionalConfig>(File.ReadAllText(configPath));
                 _atlas.boneMarkType = 0;
                 _boneMarkTypes = optionalConfig.boneMarkTypes;
                 _atlasTypes = optionalConfig.atlasTypes;
@@ -76,9 +73,8 @@ namespace Editor
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space(20);
-            if (GUILayout.Button("确定") && _atlas.name.Length > 0)
+            if (GUILayout.Button("保存图谱") && _atlas.name.Length > 0)
             {
-                _atlas.types = OptionalConfig.GetMultiSelected(_atlasTypes, _atlasTypeFlags).ToList();
                 AtlasSaved();
                 Close();
             }
@@ -86,16 +82,13 @@ namespace Editor
 
         private void AtlasSaved()
         {
-            AtlasItem atlas;
+            _atlas.types = OptionalConfig.GetMultiSelected(_atlasTypes, _atlasTypeFlags).ToList();
 
             // 若已存在数据 则仅替换本次数据
-            var atlasPath = Path.Combine(Application.dataPath, "Atlas_database", $"Atlas_{_atlas.name}.json");
-            if (File.Exists(atlasPath))
+            if (AtlasFactory.Load(_atlas.name, out var atlas))
             {
-                atlas = JsonUtility.FromJson<AtlasItem>(File.ReadAllText(atlasPath));
                 atlas.boneMarkType = _atlas.boneMarkType;
-                if (_atlas.types.Count > 0)
-                    atlas.types = _atlas.types;
+                atlas.types = _atlas.types;
             }
             else
             {
@@ -103,15 +96,12 @@ namespace Editor
             }
 
             // 添加模型数据
-            if (PrefabData.GetModelVisible(out var modelInfo))
-            {
-                atlas.gender = modelInfo.Gender;
-                atlas.modelDisplayed = modelInfo.ModelDisplayed;
-                atlas.modelTranslucent = modelInfo.ModelTranslucent;
-            }
+            atlas = PrefabData.EncodetModelVisible(atlas);
 
-            File.WriteAllText(atlasPath, JsonUtility.ToJson(atlas));
-            Debug.Log($"新的图谱 {_atlas.name} 数据已建立");
+            if (AtlasFactory.Save(atlas))
+            {
+                Debug.Log($"新的图谱 {_atlas.name} 数据已建立");
+            }
         }
     }
 }

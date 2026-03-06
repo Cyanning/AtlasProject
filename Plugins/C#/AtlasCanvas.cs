@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
@@ -31,21 +30,10 @@ namespace Plugins.C_
             "ForamensFemale(Clone)"
         };
 
-        private string AtlasPath()
-        {
-            var folders = atlasFile.Split(
-                new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
-                StringSplitOptions.RemoveEmptyEntries
-            );
-            folders[^1] = $"atlas_{folders[^1]}.json";
-            return Path.Combine(Application.dataPath, string.Join(Path.DirectorySeparatorChar, folders));
-        }
-
         private void Awake()
         {
-
             // 初始化图谱数据
-            atlas = JsonUtility.FromJson<AtlasItem>(File.ReadAllText(AtlasPath()));
+            AtlasFactory.Load(atlasFile, out atlas);
             _currentGroupIndex = -1;
         }
 
@@ -212,15 +200,8 @@ namespace Plugins.C_
 
         private void SaveAtlas()
         {
-            var index = atlasFile.LastIndexOfAny(
-                new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }
-            );
-            atlas.name = atlasFile[index..];
-
             LabellabelsMatrixConvertToLabels();
-
-            File.WriteAllText(AtlasPath(), JsonUtility.ToJson(atlas));
-
+            AtlasFactory.Save(atlas, atlasFile);
             _currentGroupIndex = -1;
             UpdateActiveInfo("图谱存储成功");
         }

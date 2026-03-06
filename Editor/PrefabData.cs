@@ -1,30 +1,47 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 using System.Linq;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using Plugins.C_;
+using Plugins.C_.models;
 
 namespace Editor
 {
-    public struct ModelVisibleInfo
-    {
-        public int Gender;
-        public string[] ModelDisplayed;
-        public string[] ModelTranslucent;
-    }
-
     public class PrefabData : MonoBehaviour
     {
-        public static bool GetModelVisible(out ModelVisibleInfo modelInfo)
-        {
-            modelInfo = new ModelVisibleInfo {Gender = 0};
+        private static readonly string[] ModelNames = { "BodyMale", "BodyFemale" };
+        private static readonly string[] ForamenNames = { "ForamensMale", "ForamensFemale" };
 
-            // 检查模型性别
-            var rootObj = GameObject.Find("BodyMale");
-            if (rootObj is null || !rootObj.activeInHierarchy)
+        public static AtlasItem EncodetModelVisible(AtlasItem atlas)
+        {
+            GameObject rootObj = null;
+            GameObject foramen = null;
+
+            foreach (var rootGameObject in SceneManager.GetActiveScene().GetRootGameObjects())
             {
-                rootObj = GameObject.Find("BodyFemale");
-                if (rootObj is null || !rootObj.activeInHierarchy) return false;
-                modelInfo.Gender = 1;
+                if (!rootGameObject.activeInHierarchy) continue;
+
+                var index = Array.IndexOf(ModelNames, rootGameObject.name);
+                if (index >= 0)
+                {
+                    rootObj = rootGameObject;
+                    atlas.gender = index;
+                }
+                else if (ForamenNames.Contains(rootGameObject.name))
+                {
+                    foramen = rootGameObject;
+                }
+            }
+
+            //必须有模型
+            if (rootObj is null) return atlas;
+
+            // 检查孔洞模型性别
+            if (foramen?.name != ForamenNames[atlas.gender])
+            {
+                foramen = null;
             }
 
             // 为模型id数组建立临时哈希变量（避免重复）
@@ -34,34 +51,109 @@ namespace Editor
             // 获取所有显示的模型
             foreach (var obj in rootObj.GetComponentsInChildren<Transform>())
             {
-                if (!obj.gameObject.activeInHierarchy || obj.transform.childCount > 0 || obj.name[^8] != '~')
-                    continue;
+                if (!obj.gameObject.activeInHierarchy || obj.childCount > 0 || obj.name[^8] != '~') continue;
 
-                var value = obj.transform.name[^7..];
-                if (obj.GetComponent<ModelTranslucent>().isTranslucnet)
+                var value = obj.name[^7..];
+                modelDisplayed.Add(value);
+
+                if (obj.TryGetComponent<ModelTranslucent>(out var translucent) && translucent.isTranslucnet)
                 {
                     modelTranslucent.Add(value);
                 }
-
-                modelDisplayed.Add(value);
             }
 
             // 获取骨性标志的孔洞模型
-            var foramen = GameObject.Find(modelInfo.Gender == 0 ? "ForamensMale" : "ForamensFemale");
             if (foramen is not null)
             {
                 foreach (var obj in foramen.GetComponentsInChildren<Transform>())
                 {
                     if (!obj.gameObject.activeInHierarchy || obj.transform.childCount > 0 || obj.name[^8] != '~')
+                    {
                         continue;
+                    }
+
                     modelDisplayed.Add(obj.transform.name[^7..]);
                 }
             }
 
-            if (modelDisplayed.Count == 0 && modelTranslucent.Count == 0) return false;
-            modelInfo.ModelDisplayed = modelDisplayed.ToArray();
-            modelInfo.ModelTranslucent = modelTranslucent.ToArray();
-            return true;
+            if (modelDisplayed.Count == 0 && modelTranslucent.Count == 0)
+            {
+                return atlas;
+            }
+
+            atlas.modelDisplayed = modelDisplayed.ToArray();
+            atlas.modelTranslucent = modelTranslucent.ToArray();
+            return atlas;
+        }
+
+        public static void DecodeModelVisible(AtlasItem atlas)
+        {
+            GameObject rootObj = null;
+            GameObject foramen = null;
+
+            foreach (var rootGameObject in SceneManager.GetActiveScene().GetRootGameObjects())
+            {
+                if (rootGameObject.name == ModelNames[atlas.gender])
+                {
+                    rootObj = rootGameObject;
+                }
+                else if (rootGameObject.name == ForamenNames[atlas.gender])
+                {
+                    foramen = rootGameObject;
+                }
+            }
+
+            if (rootObj is null) return;
+
+            var modelSetter = new ModelSetter(
+                atlas.modelDisplayed.ToHashSet(), atlas.modelTranslucent.ToHashSet()
+            );
+            modelSetter.SetModelVisible(rootObj);
+            modelSetter.SetModelVisible(foramen);
+        }
+    }
+
+    public class ModelSetter
+    {
+        private readonly HashSet<string> _checkListofActive;
+        [CanBeNull] private readonly HashSet<string> _checkListofTranslucent;
+
+        public ModelSetter(HashSet<string> activeSet, HashSet<string> translucenteSet = null)
+        {
+            _checkListofActive = activeSet;
+            _checkListofTranslucent = translucenteSet;
+        }
+
+        public bool SetModelVisible(GameObject node)
+        {
+            var isActive = false;
+
+            var childCount = node.transform.childCount;
+            if (childCount > 0)
+            {
+                for (var i = 0; i < childCount; i++)
+                {
+                    isActive |= SetModelVisible(node.transform.GetChild(i).gameObject);
+                }
+            }
+            else
+            {
+                var value = node.name[^7..];
+                isActive = _checkListofActive.Contains(value);
+
+                if (_checkListofTranslucent is not null &&
+                    node.TryGetComponent<ModelTranslucent>(out var modelTranslucent))
+                {
+                    modelTranslucent.isTranslucnet = _checkListofTranslucent.Contains(value);
+                }
+            }
+
+            if (node.activeSelf != isActive)
+            {
+                node.SetActive(isActive);
+            }
+
+            return isActive;
         }
     }
 }
