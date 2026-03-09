@@ -201,7 +201,7 @@ namespace Plugins.C_
         private void SaveAtlas()
         {
             LabellabelsMatrixConvertToLabels();
-            AtlasFactory.Save(atlas, atlasFile);
+            AtlasFactory.Save(atlas, atlasFile, true);
             _currentGroupIndex = -1;
             UpdateActiveInfo("图谱存储成功");
         }

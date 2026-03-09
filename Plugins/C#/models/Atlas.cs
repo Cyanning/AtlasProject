@@ -50,27 +50,15 @@ namespace Plugins.C_.models
 
     public static class AtlasFactory
     {
-        // folderName: Atlas_database / {folder} / {atlas name}
+        // folderName: folders/.../name
 
         private static string AtlasPath(string folderName)
         {
-
-            var folders = folderName.Split(
-                new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
-                StringSplitOptions.RemoveEmptyEntries
-            );
-            folders[^1] = $"Atlas_{folders[^1]}.json";
             return Path.Combine(
-                Application.dataPath, "Atlas_database", string.Join(Path.DirectorySeparatorChar, folders)
+                Application.dataPath, "Atlas_database",
+                Path.GetDirectoryName(folderName) ?? "",
+                $"Atlas_{Path.GetFileName(folderName)}.json"
             );
-        }
-
-        private static string AtlasName(string folderName)
-        {
-            var index = folderName.LastIndexOfAny(
-                new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }
-            );
-            return  folderName[index..];
         }
 
         public static bool Load(string folderName, out AtlasItem atlas)
@@ -82,23 +70,24 @@ namespace Plugins.C_.models
                 return true;
             }
 
-            atlas = new AtlasItem { name = AtlasName(folderName) };
+            atlas = new AtlasItem { name = Path.GetFileName(folderName) };
             return false;
         }
 
-        public static bool Save(AtlasItem atlas, string folderName=null, bool uniformName=true)
+        // 若 uniformName 为 true，则将 folderName 中的名字赋值给 atlas的 name属性
+        // folderName为空时，uniformName 设置无效
+        public static bool Save(AtlasItem atlas, string folderName = null, bool uniformName = false)
         {
-            // 若 uniformName 为 true（默认），则将地址中的名字赋值 atlas的 name属性
             if (folderName is null)
             {
                 folderName = atlas.name;
             }
             else if (uniformName)
             {
-                atlas.name = AtlasName(folderName);
+                atlas.name = Path.GetFileName(folderName);
             }
 
-            var path =  AtlasPath(folderName);
+            var path = AtlasPath(folderName);
             if (File.Exists(path))
             {
                 File.WriteAllText(path, JsonUtility.ToJson(atlas));
@@ -121,7 +110,7 @@ namespace Plugins.C_.models
             {
                 0 => left,
                 1 => right,
-                _ => throw new KeyNotFoundException()
+                _ => throw new ArgumentOutOfRangeException()
             };
             set
             {
@@ -134,7 +123,7 @@ namespace Plugins.C_.models
                         right = value;
                         break;
                     default:
-                        throw new KeyNotFoundException();
+                        throw new ArgumentOutOfRangeException();
                 }
             }
         }
