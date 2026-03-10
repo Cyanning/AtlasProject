@@ -1,7 +1,7 @@
 using System;
-using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace Editor
@@ -16,9 +16,22 @@ namespace Editor
     [Serializable]
     public class OptionalConfig
     {
-        private const string ConfigJsonPath = "Editor/OptionalConfig.json";
+        private const string ConfigPath = "Assets/Editor/OptionalConfig.json";
         public TypeItem[] boneMarkTypes;
         public TypeItem[] atlasTypes;
+
+        public static bool ReadConfig(out OptionalConfig config)
+        {
+            var configFile = AssetDatabase.LoadAssetAtPath<TextAsset>(ConfigPath);
+            if (configFile is null)
+            {
+                config = null;
+                return false;
+            }
+
+            config = JsonUtility.FromJson<OptionalConfig>(configFile.text);
+            return true;
+        }
 
         public static string[] GetContext(IEnumerable<TypeItem> typeItems)
         {
@@ -26,25 +39,34 @@ namespace Editor
             return context.ToArray();
         }
 
-        public static IEnumerable<int> GetMultiSelected(TypeItem[] typeItems, bool[] flags)
+        public static List<int> IdNumsSelected(TypeItem[] typeItems, bool[] flags)
         {
+            var selectedItems = new List<int>();
+
             for (var i = 0; i < flags.Length; i++)
             {
-                if (flags[i]) yield return typeItems[i].idNum;
+                if (flags[i])
+                {
+                    selectedItems.Add(typeItems[i].idNum);
+                }
             }
+
+            return selectedItems;
         }
 
-        public static bool ReadConfig(out OptionalConfig config)
+        public static bool[] FlagsSelected(TypeItem[] typeItems, List<int> selectedItems)
         {
-            var configPath = Path.Combine(Application.dataPath, ConfigJsonPath);
-            if (File.Exists(configPath))
+            var itemSum = typeItems.Length;
+            var flags = new bool[itemSum];
+            for (var i = 0; i < itemSum; i++)
             {
-                config = JsonUtility.FromJson<OptionalConfig>(File.ReadAllText(configPath));
-                return true;
+                if (!selectedItems.Contains(typeItems[i].idNum)) continue;
+
+                flags[i] = true;
+                break;
             }
 
-            config = null;
-            return false;
+            return flags;
         }
     }
 }

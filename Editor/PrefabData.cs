@@ -1,115 +1,112 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Linq;
 using System.Collections.Generic;
 using JetBrains.Annotations;
 using Plugins.C_;
-using Plugins.C_.models;
 
 namespace Editor
 {
+    public readonly struct ModelData
+    {
+        public readonly int Gender;
+        public readonly string[] ModelDisplayed;
+        public readonly string[] ModelTranslucent;
+
+        public ModelData(int gender, string[] modelDisplayed, string[] modelTranslucent)
+        {
+            Gender = gender;
+            ModelDisplayed = modelDisplayed;
+            ModelTranslucent = modelTranslucent;
+        }
+    }
+
     public class PrefabData : MonoBehaviour
     {
         private static readonly string[] ModelNames = { "BodyMale", "BodyFemale" };
         private static readonly string[] ForamenNames = { "ForamensMale", "ForamensFemale" };
 
-        public static AtlasItem EncodetModelVisible(AtlasItem atlas)
+        public static ModelData EncodetModelVisible()
         {
-            GameObject rootObj = null;
-            GameObject foramen = null;
-
-            foreach (var rootGameObject in SceneManager.GetActiveScene().GetRootGameObjects())
-            {
-                if (!rootGameObject.activeInHierarchy) continue;
-
-                var index = Array.IndexOf(ModelNames, rootGameObject.name);
-                if (index >= 0)
-                {
-                    rootObj = rootGameObject;
-                    atlas.gender = index;
-                }
-                else if (ForamenNames.Contains(rootGameObject.name))
-                {
-                    foramen = rootGameObject;
-                }
-            }
-
-            //必须有模型
-            if (rootObj is null) return atlas;
-
-            // 检查孔洞模型性别
-            if (foramen?.name != ForamenNames[atlas.gender])
-            {
-                foramen = null;
-            }
-
-            // 为模型id数组建立临时哈希变量（避免重复）
+            // 建立数据缓存变量，避免value重复使用HashSet
+            var gender = -1;
             var modelDisplayed = new HashSet<string>();
             var modelTranslucent = new HashSet<string>();
 
-            // 获取所有显示的模型
-            foreach (var obj in rootObj.GetComponentsInChildren<Transform>())
+            // 引用显示中的模型
+            for (var i = 0; i < ModelNames.Length; i++)
             {
-                if (!obj.gameObject.activeInHierarchy || obj.childCount > 0 || obj.name[^8] != '~') continue;
+                var body = GameObject.Find(ModelNames[i]);
+                if (body is null || !body.activeInHierarchy) continue;
 
-                var value = obj.name[^7..];
-                modelDisplayed.Add(value);
+                // 设置性别
+                gender = i;
 
-                if (obj.TryGetComponent<ModelTranslucent>(out var translucent) && translucent.isTranslucnet)
+                // 获取所有显示的模型 value
+                foreach (var obj in body.GetComponentsInChildren<Transform>())
                 {
-                    modelTranslucent.Add(value);
-                }
-            }
+                    if (!obj.gameObject.activeInHierarchy || obj.childCount > 0 || obj.name[^8] != '~') continue;
+                    var value = obj.name[^7..];
+                    modelDisplayed.Add(value);
 
-            // 获取骨性标志的孔洞模型
-            if (foramen is not null)
-            {
-                foreach (var obj in foramen.GetComponentsInChildren<Transform>())
-                {
-                    if (!obj.gameObject.activeInHierarchy || obj.transform.childCount > 0 || obj.name[^8] != '~')
+                    if (obj.TryGetComponent<ModelTranslucent>(out var translucent) && translucent.isTranslucnet)
                     {
-                        continue;
+                        modelTranslucent.Add(value);
                     }
+                }
 
-                    modelDisplayed.Add(obj.transform.name[^7..]);
+                break;
+            }
+
+            // 主模型不可为空
+            if (gender >= 0)
+            {
+                // 获取骨性标志的孔洞模型
+                var foramen = GameObject.Find(ForamenNames[gender]);
+                if (foramen?.activeInHierarchy == true)
+                {
+                    var foramens =
+                        from obj in foramen.GetComponentsInChildren<Transform>()
+                        where obj.gameObject.activeInHierarchy && obj.transform.childCount == 0 && obj.name[^8] == '~'
+                        select obj.transform.name[^7..];
+
+                    modelDisplayed.UnionWith(foramens.ToHashSet());
                 }
             }
 
-            if (modelDisplayed.Count == 0 && modelTranslucent.Count == 0)
-            {
-                return atlas;
-            }
-
-            atlas.modelDisplayed = modelDisplayed.ToArray();
-            atlas.modelTranslucent = modelTranslucent.ToArray();
-            return atlas;
+            return new ModelData(
+                gender,
+                modelDisplayed.ToArray(),
+                modelTranslucent.ToArray()
+            );
         }
 
-        public static void DecodeModelVisible(AtlasItem atlas)
+        public static void DecodeModelVisible(ModelData modelData)
         {
             GameObject rootObj = null;
             GameObject foramen = null;
 
             foreach (var rootGameObject in SceneManager.GetActiveScene().GetRootGameObjects())
             {
-                if (rootGameObject.name == ModelNames[atlas.gender])
+                if (rootGameObject.name == ModelNames[modelData.Gender])
                 {
                     rootObj = rootGameObject;
                 }
-                else if (rootGameObject.name == ForamenNames[atlas.gender])
+                else if (rootGameObject.name == ForamenNames[modelData.Gender])
                 {
                     foramen = rootGameObject;
                 }
             }
 
-            if (rootObj is null) return;
-
             var modelSetter = new ModelSetter(
-                atlas.modelDisplayed.ToHashSet(), atlas.modelTranslucent.ToHashSet()
+                modelData.ModelDisplayed.ToHashSet(), modelData.ModelTranslucent.ToHashSet()
             );
-            modelSetter.SetModelVisible(rootObj);
-            modelSetter.SetModelVisible(foramen);
+
+            if (rootObj is not null)
+                modelSetter.SetModelVisible(rootObj);
+
+            if (foramen is not null)
+                modelSetter.SetModelVisible(foramen);
         }
     }
 

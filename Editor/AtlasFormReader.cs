@@ -4,7 +4,7 @@ using Plugins.C_.models;
 
 namespace Editor
 {
-    public class AtlasFormReader: EditorWindow
+    public class AtlasFormReader : EditorWindow
     {
         private string _atlasName;
 
@@ -37,7 +37,11 @@ namespace Editor
         {
             if (AtlasFactory.Load(_atlasName, out var atlas))
             {
-                PrefabData.DecodeModelVisible(atlas);
+                PrefabData.DecodeModelVisible(
+                    new ModelData(atlas.gender, atlas.modelDisplayed, atlas.modelTranslucent)
+                );
+                CookieWrapper.Create(_atlasName);
+                Debug.Log($"加载{_atlasName}成功");
             }
         }
     }
