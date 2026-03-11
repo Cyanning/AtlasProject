@@ -26,7 +26,7 @@ namespace Editor
 
         private void OnEnable()
         {
-            if (OptionalConfig.ReadConfig(out var optionalConfig))
+            if (TypesConfig.ReadConfig(out var optionalConfig))
             {
                 _boneMarkTypes = optionalConfig.boneMarkTypes;
                 _atlasTypes = optionalConfig.atlasTypes;
@@ -40,7 +40,7 @@ namespace Editor
             if (CookieWrapper.Reading(out _atlasName) && AtlasFactory.Load(_atlasName, out var atlas))
             {
                 _boneMarkType = atlas.boneMarkType;
-                _atlasTypeFlags = OptionalConfig.FlagsSelected(_atlasTypes, atlas.types);
+                _atlasTypeFlags = TypesConfig.FlagsSelected(_atlasTypes, atlas.types);
             }
             else
             {
@@ -59,7 +59,7 @@ namespace Editor
             EditorGUILayout.LabelField("选择骨性标志类型（必填）：", EditorStyles.boldLabel);
             _boneMarkType = GUILayout.SelectionGrid(
                 _boneMarkType,
-                OptionalConfig.GetContext(_boneMarkTypes),
+                TypesConfig.GetContext(_boneMarkTypes),
                 2, EditorStyles.toggle
             );
 
@@ -112,7 +112,7 @@ namespace Editor
             atlas.modelDisplayed = modelData.ModelDisplayed;
             atlas.modelTranslucent = modelData.ModelTranslucent;
             atlas.boneMarkType = _boneMarkType;
-            atlas.types = OptionalConfig.IdNumsSelected(_atlasTypes, _atlasTypeFlags);
+            atlas.types = TypesConfig.IdNumsSelected(_atlasTypes, _atlasTypeFlags);
 
             //保存文件
             AtlasFactory.Save(atlas);

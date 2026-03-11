@@ -14,13 +14,13 @@ namespace Editor
     }
 
     [Serializable]
-    public class OptionalConfig
+    public class TypesConfig
     {
         private const string ConfigPath = "Assets/Editor/OptionalConfig.json";
         public TypeItem[] boneMarkTypes;
         public TypeItem[] atlasTypes;
 
-        public static bool ReadConfig(out OptionalConfig config)
+        public static bool ReadConfig(out TypesConfig config)
         {
             var configFile = AssetDatabase.LoadAssetAtPath<TextAsset>(ConfigPath);
             if (configFile is null)
@@ -29,7 +29,7 @@ namespace Editor
                 return false;
             }
 
-            config = JsonUtility.FromJson<OptionalConfig>(configFile.text);
+            config = JsonUtility.FromJson<TypesConfig>(configFile.text);
             return true;
         }
 
