@@ -38,7 +38,7 @@ namespace Editor
             if (objTranslucent == null) return;
             // 获取状态
             var translucentState = objTranslucent.isTranslucnet;
-            // 定义透明的checkbox的区域：放在右边
+            // 定义透明的checkbox的区域：放在左边
             var newTranslucentState =
                 GUI.Toggle(
                     new Rect(selectionRect.xMax - 18, selectionRect.y, 18, selectionRect.height),

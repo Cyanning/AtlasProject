@@ -37,7 +37,9 @@ namespace Editor
                 _atlasTypes = Array.Empty<TypeItem>();
             }
 
-            if (CookieWrapper.Reading(out _atlasName) && AtlasFactory.Load(_atlasName, out var atlas))
+            _atlasName = CookieWrapper.Reading();
+
+            if (AtlasFactory.Load(_atlasName, out var atlas))
             {
                 _boneMarkType = atlas.boneMarkType;
                 _atlasTypeFlags = TypesConfig.FlagsSelected(_atlasTypes, atlas.types);
@@ -116,6 +118,7 @@ namespace Editor
 
             //保存文件
             AtlasFactory.Save(atlas);
+            CookieWrapper.Create(_atlasName);
             Debug.Log($"新的图谱 {atlas.name} 数据已建立");
         }
     }

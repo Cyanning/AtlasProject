@@ -16,7 +16,7 @@ namespace Editor
 
         private void OnEnable()
         {
-            _atlasName = "";
+            _atlasName = CookieWrapper.Reading();
         }
 
         private void OnGUI()
@@ -41,7 +41,11 @@ namespace Editor
                     new ModelData(atlas.gender, atlas.modelDisplayed, atlas.modelTranslucent)
                 );
                 CookieWrapper.Create(_atlasName);
-                Debug.Log($"加载{_atlasName}成功");
+                Debug.Log($"加载 {_atlasName} 成功");
+            }
+            else
+            {
+                Debug.Log($"找不到 {_atlasName} 的数据");
             }
         }
     }

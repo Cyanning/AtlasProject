@@ -13,21 +13,11 @@ namespace Editor
         public static void Create(string context)
         {
             File.WriteAllText(SystemPath, context, Encoding.UTF8);
-            AssetDatabase.ImportAsset(AssetsPath);
         }
 
-        public static bool Reading(out string context)
+        public static string Reading()
         {
-            var cookie = AssetDatabase.LoadAssetAtPath<TextAsset>(AssetsPath);
-            if (cookie is null)
-            {
-                context = "";
-                return false;
-            }
-
-            context = cookie.text.Trim();
-            AssetDatabase.DeleteAsset(AssetsPath);
-            return true;
+            return AssetDatabase.LoadAssetAtPath<TextAsset>(AssetsPath)?.text.Trim() ?? "";
         }
     }
 }
