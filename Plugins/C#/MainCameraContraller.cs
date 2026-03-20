@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 
@@ -27,13 +28,19 @@ namespace Plugins.C_
 
         public Vector3 GetMainCameraPostion()
         {
-            return _cam.transform.position;
+            var pos = _cam.transform.position;
+            return new Vector3
+            {
+                x = (float)Math.Round(pos.x, 2, MidpointRounding.AwayFromZero),
+                y = (float)Math.Round(pos.x, 2, MidpointRounding.AwayFromZero),
+                z = (float)Math.Round(pos.x, 2, MidpointRounding.AwayFromZero)
+            };
         }
 
         public Vector3 GetMainCameraRotation()
         {
             var eulerAngles = _cam.transform.eulerAngles;
-            return new Vector3()
+            return new Vector3
             {
                 x = eulerAngles.x > 180f ? eulerAngles.x - 360f : eulerAngles.x,
                 y = eulerAngles.y > 180f ? eulerAngles.y - 360f : eulerAngles.y,

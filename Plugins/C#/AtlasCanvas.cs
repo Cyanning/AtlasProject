@@ -57,6 +57,9 @@ namespace Plugins.C_
                     case "ChangeGroupBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(ChangeGroup);
                         break;
+                    case "SaveGroupCarmeraBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(SaveGroupCarmera);
+                        break;
                     case "CreateGroupsBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(CreateGroup);
                         break;
@@ -81,6 +84,7 @@ namespace Plugins.C_
             // 界面显示初始化
             LabelsConvertToLabellabelsMatrix();
             UpdateActiveInfo();
+            UpdateAtlasInfo();
         }
 
         // 创建一个标签点位缓存
@@ -124,7 +128,9 @@ namespace Plugins.C_
             _activeLabel.orderNum = orderNum;
             atlas.groups[_currentGroupIndex].labels.Add(_activeLabel);
 
+            _activeLabel = null;
             UpdateActiveInfo("当前标签已添加成功");
+            UpdateAtlasInfo();
         }
 
         private int GetOrderNum(int location)
@@ -143,20 +149,32 @@ namespace Plugins.C_
 
         private void CreateGroup()
         {
+            atlas.groups.Add(new AtlasGroup { labels = new List<AtlasLabel>() });
+            _currentGroupIndex = atlas.groups.Count - 1;
+            _activeLabel = null;
+            SaveGroupCarmera();
+            UpdateActiveInfo("创建标签组成功", true);
+            UpdateAtlasInfo();
+        }
+
+        private void SaveGroupCarmera()
+        {
+            if (_currentGroupIndex < 0)
+            {
+                UpdateActiveInfo("请先创建标签组");
+                return;
+            }
+
+            var group = atlas.groups[_currentGroupIndex];
             var pos = _camCtrl.GetMainCameraPostion();
             var rot = _camCtrl.GetMainCameraRotation();
-            atlas.groups.Add(new AtlasGroup
-            {
-                cameraPositionX = pos.x,
-                cameraPositionY = pos.y,
-                cameraPositionZ = pos.z,
-                cameraRotationX = rot.x,
-                cameraRotationY = rot.y,
-                cameraRotationZ = rot.z,
-                labels = new List<AtlasLabel>()
-            });
-            _currentGroupIndex = atlas.groups.Count - 1;
-            UpdateActiveInfo("创建标签组成功");
+            group.cameraPositionX = pos.x;
+            group.cameraPositionY = pos.y;
+            group.cameraPositionZ = pos.z;
+            group.cameraRotationX = rot.x;
+            group.cameraRotationY = rot.y;
+            group.cameraRotationZ = rot.z;
+            UpdateActiveInfo("组视角设置成功");
         }
 
         // 切换当前标签组
@@ -172,7 +190,9 @@ namespace Plugins.C_
                 group.cameraRotationX, group.cameraRotationY, group.cameraRotationZ
             );
             SetLabelsMatrixStates();
+            _activeLabel = null;
             UpdateActiveInfo("已切换标签组");
+            UpdateAtlasInfo();
         }
 
         // 设置图谱初始视角
@@ -203,11 +223,13 @@ namespace Plugins.C_
             LabellabelsMatrixConvertToLabels();
             AtlasFactory.Save(atlas, atlasFile, true);
             _currentGroupIndex = -1;
+            _activeLabel = null;
             UpdateActiveInfo("图谱存储成功");
+            UpdateAtlasInfo();
         }
 
         // 更新显示的数据
-        private void UpdateActiveInfo(string tipsInfo = null)
+        private void UpdateAtlasInfo()
         {
             var groupsSum = atlas.groups.Count;
             var groupOrder = "-";
@@ -218,13 +240,21 @@ namespace Plugins.C_
                 labelsSum = $"{atlas.groups[_currentGroupIndex].labels.Count}";
             }
 
-            _atlasInfo.text =
-                $"当前标签组序号/总组数: {groupOrder} / {groupsSum}\n当前组的标签总数: {labelsSum}";
+            _atlasInfo.text = $"当前标签组序号/总组数: {groupOrder} / {groupsSum}\n当前组的标签总数: {labelsSum}";
+        }
 
+        private void UpdateActiveInfo(string tipsInfo = null, bool isAdd = false)
+        {
             if (tipsInfo is not null)
             {
-                _activeInfo.text = tipsInfo;
-                _activeLabel = null;
+                if (isAdd)
+                {
+                    _activeInfo.text += "\n" + tipsInfo;
+                }
+                else
+                {
+                    _activeInfo.text = tipsInfo;
+                }
             }
             else if (_activeLabel is not null)
             {

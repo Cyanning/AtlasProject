@@ -18,7 +18,7 @@ namespace Editor
         private TypeItem[] _atlasTypes;
 
         //MenuItem会在unity菜单栏添加自定义新项
-        [MenuItem("自定义功能/创建图谱")]
+        [MenuItem("图谱/创建图谱")]
         public static void ShowWindow()
         {
             GetWindow<AtlasFormMarker>("创建图谱");

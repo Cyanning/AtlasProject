@@ -8,7 +8,7 @@ namespace Editor
     {
         private string _atlasName;
 
-        [MenuItem("自定义功能/读取图谱")]
+        [MenuItem("图谱/读取图谱")]
         public static void ShowWindow()
         {
             GetWindow<AtlasFormReader>("读取图谱");

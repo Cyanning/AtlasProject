@@ -12,11 +12,14 @@ namespace Editor
 
         public static void Create(string context)
         {
+            // 创建缓存文件
             File.WriteAllText(SystemPath, context, Encoding.UTF8);
+            AssetDatabase.ImportAsset(AssetsPath);
         }
 
         public static string Reading()
         {
+            // 读取缓存文件
             return AssetDatabase.LoadAssetAtPath<TextAsset>(AssetsPath)?.text.Trim() ?? "";
         }
     }
