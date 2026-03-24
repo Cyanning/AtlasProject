@@ -17,7 +17,13 @@ namespace Plugins.C_.models
                 Directory.CreateDirectory(directory);
             }
 
-            var relativePath = Path.Combine(directory, $"Atlas_{Path.GetFileName(folderName)}.json");
+            var fileName = Path.GetFileNameWithoutExtension(folderName);
+            if (fileName.StartsWith("Atlas_"))
+            {
+                fileName = fileName[6..];
+            }
+
+            var relativePath = Path.Combine(directory, $"Atlas_{fileName}.json");
             return (
                 Path.Combine("Assets", relativePath),
                 Path.Combine(Application.dataPath, relativePath)

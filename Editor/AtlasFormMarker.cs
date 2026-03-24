@@ -9,7 +9,7 @@ namespace Editor
     public class AtlasFormMarker : EditorWindow
     {
         // 表单数据
-        private string _atlasName;
+        private string _atlasFile;
         private int _boneMarkType;
         private bool[] _atlasTypeFlags;
 
@@ -37,9 +37,9 @@ namespace Editor
                 _atlasTypes = Array.Empty<TypeItem>();
             }
 
-            _atlasName = CookieWrapper.Reading();
+            _atlasFile = CookieWrapper.Reading();
 
-            if (AtlasFactory.Load(_atlasName, out var atlas))
+            if (AtlasFactory.Load(_atlasFile, out var atlas))
             {
                 _boneMarkType = atlas.boneMarkType;
                 _atlasTypeFlags = TypesConfig.FlagsSelected(_atlasTypes, atlas.types);
@@ -55,7 +55,7 @@ namespace Editor
         {
             EditorGUILayout.Space(20);
             EditorGUILayout.LabelField("图谱名称（必填）：", EditorStyles.boldLabel);
-            _atlasName = EditorGUILayout.TextField(_atlasName);
+            _atlasFile = EditorGUILayout.TextField(_atlasFile);
 
             EditorGUILayout.Space(20);
             EditorGUILayout.LabelField("选择骨性标志类型（必填）：", EditorStyles.boldLabel);
@@ -91,7 +91,7 @@ namespace Editor
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space(20);
-            if (GUILayout.Button("保存图谱") && !string.IsNullOrEmpty(_atlasName))
+            if (GUILayout.Button("保存图谱") && !string.IsNullOrEmpty(_atlasFile))
             {
                 AtlasSaved();
                 Close();
@@ -101,9 +101,9 @@ namespace Editor
         private void AtlasSaved()
         {
             // 若已存在数据 则仅替换本次数据
-            if (!AtlasFactory.Load(_atlasName, out var atlas))
+            if (!AtlasFactory.Load(_atlasFile, out var atlas))
             {
-                atlas = new AtlasItem { name = _atlasName };
+                atlas = new AtlasItem();
             }
 
             // 获取当前显示的模型数据
@@ -117,8 +117,8 @@ namespace Editor
             atlas.types = TypesConfig.IdNumsSelected(_atlasTypes, _atlasTypeFlags);
 
             //保存文件
-            AtlasFactory.Save(atlas);
-            CookieWrapper.Create(_atlasName);
+            AtlasFactory.Save(atlas, _atlasFile, true);
+            CookieWrapper.Create(_atlasFile);
             Debug.Log($"新的图谱 {atlas.name} 数据已建立");
         }
     }
