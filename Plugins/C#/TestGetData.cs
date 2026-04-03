@@ -12,23 +12,19 @@ namespace Plugins.C_
             Path.Combine(Application.dataPath, "StreamingAssets", "Test", "resource_ab");
 
         public static string TEST_MODEL_PATH =
-            Path.Combine(Application.dataPath, "StreamingAssets", "Test", "encypt_malemodel");
+            Path.Combine(Application.dataPath, "StreamingAssets", "Test", "encypt_body_male");
 
         public static string TEST_NEW_RESOURCE_PATH =
             Path.Combine(Application.dataPath, "StreamingAssets", "Test", "resource_ab");
 
         public static string TEST_NEW_MODEL_MALE_PATH =
-            Path.Combine(Application.dataPath, "StreamingAssets", "Test", "encypt_malemodel");
+            Path.Combine(Application.dataPath, "StreamingAssets", "Test", "encypt_body_male_static");
 
         public static string TEST_NEW_MODEL_FEMALE_PATH =
-            Path.Combine(Application.dataPath, "StreamingAssets", "Test", "encypt_femalemodel");
+            Path.Combine(Application.dataPath, "StreamingAssets", "Test", "encypt_body_female_static");
 
         public Dictionary<string, string> AllObject;
         string nowValue = "";
-
-        private void Awake()
-        {
-        }
 
         // Start is called before the first frame update
         void Start()

@@ -7,7 +7,7 @@
 
 namespace Plugins.C_
 {
-    public class Smooth3DCamera : MonoBehaviour
+    public class SmoothCamera : MonoBehaviour
     {
         public Transform pivot;
         public Vector3 pivotOffset = Vector3.zero;
@@ -49,15 +49,10 @@ namespace Plugins.C_
             var scroll = Input.GetAxis("Mouse ScrollWheel");
             if (scroll > 0.0f)
             {
-                //Debug.Log(scroll);
-
                 Vector3 tmp = new Vector3(0, 0, -1 * (0.025f));
 
                 Vector3 position = transform.position - transform.rotation * tmp;
                 transform.position = position;
-
-
-                // clickEvent.updateLines();
             }
             else if (scroll < 0.0f)
             {
@@ -65,37 +60,29 @@ namespace Plugins.C_
 
                 Vector3 position = transform.position - transform.rotation * tmp;
                 transform.position = position;
-                // clickEvent.updateLines();
             }
 
             if (Input.GetKey(KeyCode.LeftArrow))
             {
                 transform.Translate(transform.right * 0.0001f, Space.World);
-                // clickEvent.updateLines();
             }
 
             if (Input.GetKey(KeyCode.RightArrow))
             {
                 transform.Translate(transform.right * -0.0001f, Space.World);
-
-                //clickEvent.updateLines();
             }
 
             if (Input.GetKey(KeyCode.UpArrow))
             {
                 transform.Translate(transform.up * -0.0001f, Space.World);
-
-                // clickEvent.updateLines();
             }
 
             if (Input.GetKey(KeyCode.DownArrow))
             {
                 transform.Translate(transform.up * 0.0001f, Space.World);
-                // clickEvent.updateLines();
             }
 
-            if (Input.GetMouseButton(1) || (Input.GetMouseButton(0) &&
-                                            (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))))
+            if (Input.GetMouseButton(1))
             {
                 if (transform.up.y > 0)
                 {
@@ -109,8 +96,6 @@ namespace Plugins.C_
                 }
 
                 transform.RotateAround(ClickEvent.RotationCenter, transform.right, -Input.GetAxis("Mouse Y") * 6);
-
-                // clickEvent.updateLines();
             }
         }
 

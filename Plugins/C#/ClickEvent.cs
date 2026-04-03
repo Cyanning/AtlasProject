@@ -11,6 +11,7 @@ using DG.Tweening;
 using System.Linq;
 using Plugins.C_.models;
 
+
 namespace Plugins.C_
 {
     public class ClickEvent : MonoBehaviour
@@ -209,7 +210,14 @@ namespace Plugins.C_
         //通过传过来的模型地址，判断对应预制体的名字
         private void DefineModelName(string url)
         {
-            modelPrefabName = url.EndsWith("encypt_malemodel") ? "BodyMaleStatic" : "BodyFemaleStatic";
+            modelPrefabName = Path.GetFileNameWithoutExtension(url) switch
+            {
+                "encypt_body_male" => "BodyMale",
+                "encypt_body_female" => "BodyFemale",
+                "encypt_body_male_static" => "BodyMaleStatic",
+                "encypt_body_female_static" => "BodyFemaleStatic",
+                _ => throw new FileNotFoundException($"File Error: {url}")
+            };
         }
 
         private void SetModelPath(string url)
