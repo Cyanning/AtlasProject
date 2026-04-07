@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace Editor
+namespace Editor.models
 {
     [Serializable]
     public class TypeItem
@@ -16,7 +16,7 @@ namespace Editor
     [Serializable]
     public class TypesConfig
     {
-        private const string ConfigPath = "Assets/Editor/OptionalConfig.json";
+        private const string ConfigPath = "Assets/Editor/models/OptionalConfig.json";
         public TypeItem[] boneMarkTypes;
         public TypeItem[] atlasTypes;
 

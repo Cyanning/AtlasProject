@@ -2,7 +2,7 @@ using System;
 using UnityEditor;
 using UnityEngine;
 using Plugins.C_.models;
-
+using Editor.models;
 
 namespace Editor
 {
@@ -107,12 +107,18 @@ namespace Editor
             }
 
             // 获取当前显示的模型数据
-            var modelData = PrefabData.EncodetModelVisible();
+            var bodysForActive = PrefabEditor.EncodetModelActive();
+            atlas.gender = bodysForActive.gender;
+            atlas.modelDisplayed = bodysForActive.ValuesAsStr();
 
-            // 赋值
-            atlas.gender = modelData.Gender;
-            atlas.modelDisplayed = modelData.ModelDisplayed;
-            atlas.modelTranslucent = modelData.ModelTranslucent;
+            // 获取当前透明的模型数据
+            var bodysForTranslucent = PrefabEditor.EncodetModelActive();
+            if (bodysForActive.gender == bodysForTranslucent.gender)
+            {
+
+            }
+
+            atlas.modelTranslucent = bodysForTranslucent.ValuesAsStr();
             atlas.boneMarkType = _boneMarkType;
             atlas.types = TypesConfig.IdNumsSelected(_atlasTypes, _atlasTypeFlags);
 

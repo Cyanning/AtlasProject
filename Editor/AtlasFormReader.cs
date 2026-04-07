@@ -1,6 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 using Plugins.C_.models;
+using Editor.models;
 
 namespace Editor
 {
@@ -37,9 +38,9 @@ namespace Editor
         {
             if (AtlasFactory.Load(_atlasName, out var atlas))
             {
-                PrefabData.DecodeModelVisible(
-                    new ModelData(atlas.gender, atlas.modelDisplayed, atlas.modelTranslucent)
-                );
+                PrefabEditor.DecodeModelActive(new BodyStructWrapper(atlas.gender, atlas.modelDisplayed));
+                PrefabEditor.DecodeModelTranslucent(new BodyStructWrapper(atlas.gender, atlas.modelTranslucent));
+
                 CookieWrapper.Create(_atlasName);
                 Debug.Log($"加载 {_atlasName} 成功");
             }
