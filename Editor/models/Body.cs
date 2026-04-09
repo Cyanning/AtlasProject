@@ -54,9 +54,9 @@ namespace Editor.models
             set => this.value = Convert.ToInt32(value);
         }
 
-        public int Gender()
+        public int GenderNum()
         {
-            return (value < 1000000 ? value / 10000 : value / 100000) % 10;
+            return (value < 1000000 ? value / 1000 : value / 10000) % 10;
         }
 
         public int SystemNum()
@@ -90,11 +90,13 @@ namespace Editor.models
         public int gender;
         public List<BodyStruct> elements;
 
-        public BodyStructWrapper(int gender, IEnumerable values)
+        public BodyStructWrapper(int gender = -1, IEnumerable values = null)
         {
             this.gender = gender;
 
             elements = new List<BodyStruct>();
+            if (values == null) return;
+
             foreach (var value in values)
             {
                 elements.Add(

@@ -112,13 +112,10 @@ namespace Editor
             atlas.modelDisplayed = bodysForActive.ValuesAsStr();
 
             // 获取当前透明的模型数据
-            var bodysForTranslucent = PrefabEditor.EncodetModelActive();
-            if (bodysForActive.gender == bodysForTranslucent.gender)
-            {
-
-            }
-
+            var bodysForTranslucent = PrefabEditor.EncodetModelTranslucent(atlas.gender);
             atlas.modelTranslucent = bodysForTranslucent.ValuesAsStr();
+
+            // 获取骨性标志的类型和预分类
             atlas.boneMarkType = _boneMarkType;
             atlas.types = TypesConfig.IdNumsSelected(_atlasTypes, _atlasTypeFlags);
 

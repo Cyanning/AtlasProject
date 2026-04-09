@@ -109,7 +109,7 @@ namespace Editor
         public static void DecodeModelActive(BodyStructWrapper bodys)
         {
             // 数据处理类的实例
-            var setter = new ActiveSetter(bodys.ValuesAsInt().ToHashSet());
+            var setter = new PrefabSetActive(bodys.ValuesAsInt().ToHashSet());
 
             // 通过场景查找隐藏的模型对象
             foreach (var rootObj in SceneManager.GetActiveScene().GetRootGameObjects())
@@ -119,7 +119,7 @@ namespace Editor
 
                 if (index % 2 == bodys.gender)
                 {
-                    setter.SetActive(rootObj);
+                    setter.Setting(rootObj);
                 }
                 else
                 {
@@ -131,7 +131,7 @@ namespace Editor
         public static void DecodeModelTranslucent(BodyStructWrapper bodys)
         {
             // 数据处理类的实例
-            var modelSetter = new TranslucentSetter(bodys.ValuesAsInt().ToHashSet());
+            var modelSetter = new PrefabSetTranslucent(bodys.ValuesAsInt().ToHashSet());
 
             // 通过场景查找隐藏的模型对象
             foreach (var rootObj in SceneManager.GetActiveScene().GetRootGameObjects())
@@ -141,86 +141,13 @@ namespace Editor
 
                 if (index % 2 == bodys.gender)
                 {
-                    modelSetter.SetTranslucent(rootObj);
+                    modelSetter.Setting(rootObj);
                 }
                 else
                 {
                     rootObj.SetActive(false);
                 }
             }
-        }
-    }
-
-    public class ActiveSetter
-    {
-        private readonly HashSet<int> _checkofActive;
-
-        public ActiveSetter(HashSet<int> activeSet)
-        {
-            _checkofActive = activeSet ?? new HashSet<int>();
-        }
-
-        public bool SetActive(GameObject nodeGo)
-        {
-            var nodeTf = nodeGo.transform;
-            var childCount = nodeTf.childCount;
-            var isActive = false;
-
-            if (childCount > 0)
-            {
-                for (var i = 0; i < childCount; i++)
-                {
-                    isActive |= SetActive(nodeTf.GetChild(i).gameObject);
-                }
-            }
-            else if (BodyStruct.ByPrefabName(nodeTf.name, out var body))
-            {
-                isActive = _checkofActive.Contains(body.value);
-            }
-
-            if (nodeGo.activeSelf != isActive)
-            {
-                nodeGo.SetActive(isActive);
-            }
-
-
-            return isActive;
-        }
-    }
-
-    public class TranslucentSetter
-    {
-        private readonly HashSet<int> _checkofTranslucent;
-
-        public TranslucentSetter(HashSet<int> translucenteSet)
-        {
-            _checkofTranslucent = translucenteSet ?? new HashSet<int>();
-        }
-
-        public bool SetTranslucent(GameObject nodeGo)
-        {
-            var nodeTf = nodeGo.transform;
-            var childCount = nodeTf.childCount;
-            var isTranslucent = true;
-
-            if (childCount > 0)
-            {
-                for (var i = 0; i < childCount; i++)
-                {
-                    isTranslucent &= SetTranslucent(nodeTf.GetChild(i).gameObject);
-                }
-            }
-            else if (BodyStruct.ByPrefabName(nodeTf.name, out var body))
-            {
-                isTranslucent = _checkofTranslucent.Contains(body.value);
-            }
-
-            if (nodeGo.TryGetComponent<ModelTranslucent>(out var modelTranslucent))
-            {
-                modelTranslucent.isTranslucnet = isTranslucent;
-            }
-
-            return isTranslucent;
         }
     }
 }
