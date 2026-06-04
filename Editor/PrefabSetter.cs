@@ -7,17 +7,17 @@ namespace Editor
 {
     public abstract class PrefabSetter
     {
-        private readonly HashSet<int> checkList;
+        private readonly HashSet<int> _checkList;
         protected abstract bool InitialValue { get; }
 
         protected PrefabSetter(HashSet<int> checkList)
         {
-            this.checkList = checkList ?? new HashSet<int>();
+            _checkList = checkList ?? new HashSet<int>();
         }
 
         protected abstract bool LogicalCalculus(bool parentFlag, bool childFlag);
 
-        protected abstract void CheckState(bool flag, GameObject nodeGo);
+        protected abstract void CheckState(GameObject nodeGo, bool flag);
 
         public bool Setting(GameObject nodeGo)
         {
@@ -29,15 +29,16 @@ namespace Editor
             {
                 for (var i = 0; i < childCount; i++)
                 {
-                    flag = LogicalCalculus(flag, Setting(nodeTf.GetChild(i).gameObject));
+                    var childFlag = Setting(nodeTf.GetChild(i).gameObject);
+                    flag = LogicalCalculus(flag, childFlag);
                 }
             }
             else if (BodyStruct.ByPrefabName(nodeTf.name, out var body))
             {
-                flag = checkList.Contains(body.value);
+                flag = _checkList.Contains(body.value);
             }
 
-            CheckState(flag, nodeGo);
+            CheckState(nodeGo, flag);
 
             return flag;
         }
@@ -54,7 +55,7 @@ namespace Editor
             return parentFlag | childFlag;
         }
 
-        protected override void CheckState(bool flag, GameObject nodeGo)
+        protected override void CheckState(GameObject nodeGo, bool flag)
         {
             if (nodeGo.activeSelf != flag)
             {
@@ -74,7 +75,7 @@ namespace Editor
             return parentFlag & childFlag;
         }
 
-        protected override void CheckState(bool flag, GameObject nodeGo)
+        protected override void CheckState(GameObject nodeGo, bool flag)
         {
             if (nodeGo.TryGetComponent<ModelTranslucent>(out var modelTranslucent))
             {
