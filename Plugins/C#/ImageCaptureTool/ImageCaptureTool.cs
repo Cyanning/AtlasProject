@@ -50,18 +50,13 @@ namespace Plugins.C_.ImageCaptureTool
         public static CaptureResult Capture(Camera camera, int width, int height, bool clearBack, string directory,
             string file)
         {
-            string outputDirectory;
-            string outputFile;
-            string outputExtension;
-            string outputPath;
-
             GetOutputFilePath(directory,
                 file,
                 "png",
-                out outputDirectory,
-                out outputFile,
-                out outputExtension,
-                out outputPath);
+                out var outputDirectory,
+                out var outputFile,
+                out var outputExtension,
+                out var outputPath);
             try
             {
                 var captureImage = Capture(camera, width, height, clearBack);

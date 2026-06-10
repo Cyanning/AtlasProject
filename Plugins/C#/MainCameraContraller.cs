@@ -20,6 +20,13 @@ namespace Plugins.C_
             return result;
         }
 
+        public bool GetTextureUv(out Vector2 uv)
+        {
+            var result = Physics.Raycast(_cam.ScreenPointToRay(Input.mousePosition), out var raycast);
+            uv = raycast.textureCoord;
+            return result;
+        }
+
         public void SetCameraTransform(float posX, float posY, float posZ, float rotX, float rotY, float rotZ)
         {
             _cam.transform.position = new Vector3(posX, posY, posZ);

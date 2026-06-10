@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.UI;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
@@ -10,14 +9,21 @@ namespace Plugins.C_
 {
     public class BoneMarkManager : MonoBehaviour
     {
-        private int _markType;
+        public int markType;
+
+        private ClickEvent _clickEvent;
+
+        // 孔洞资源
+        private AssetBundle _foramensAsset;
+        private GameObject _foramens;
+
+        // 缓存模型贴图数据 方便来回切换
         private Material[] _materialChanged;
         private Dictionary<string, BoneMaps> _textures;
 
-        private AssetBundle _foramensAsset;
-        private GameObject _foramens;
-        private ClickEvent _clickEvent;
-
+        // 着色器属性
+        private static readonly int ShaderIDUvx = Shader.PropertyToID("_uvx");
+        private static readonly int ShaderIDUvy = Shader.PropertyToID("_uvy");
         private static readonly int ShaderIDBgcolor = Shader.PropertyToID("bs");
         private static readonly int ShaderIDTranslucent = Shader.PropertyToID("_bskg");
         private static readonly int ShaderIDTexDisplayed = Shader.PropertyToID("_albe");
@@ -35,33 +41,23 @@ namespace Plugins.C_
 
         private void Start()
         {
-            for (var i = 0; i < transform.childCount; i++)
-            {
-                var userInterface = transform.GetChild(i);
-                if (userInterface.name == "ChangeBonesBtn")
-                {
-                    userInterface.GetComponent<Button>().onClick.AddListener(SettingBonemarkMode);
-                    break;
-                }
-            }
-
             _clickEvent = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<ClickEvent>();
         }
 
-        private void SettingBonemarkMode()
+        public void SettingBonemarkMode()
         {
-            if (_markType < 3)
+            if (markType < 3)
             {
-                _markType++;
+                markType++;
 
                 if (_materialChanged == null || _materialChanged.Length == 0) GetMaterialChanged();
                 ChangeMapsForBone();
 
-                if (_markType == 1 && _foramens == null) LoadForamens();
+                if (markType == 1 && _foramens == null) LoadForamens();
             }
             else
             {
-                _markType = 0;
+                markType = 0;
                 RecoverMapsForBone();
             }
         }
@@ -92,8 +88,8 @@ namespace Plugins.C_
                 material.shader = Shader.Find("ame3");
                 material.SetColor(ShaderIDBgcolor, Color.white);
                 material.SetInt(ShaderIDTranslucent, 1);
-                material.SetTexture(ShaderIDTexInvisible, _textures[markName].Invisible[_markType]);
-                material.SetTexture(ShaderIDTexDisplayed, _textures[markName].Displayed[_markType]);
+                material.SetTexture(ShaderIDTexInvisible, _textures[markName].Invisible[markType]);
+                material.SetTexture(ShaderIDTexDisplayed, _textures[markName].Displayed[markType]);
             }
         }
 
@@ -109,7 +105,7 @@ namespace Plugins.C_
             }
         }
 
-        private static string GetMarkName(UnityEngine.Object material)
+        private static string GetMarkName(Object material)
         {
             return material.name.EndsWith(" (Instance)") ? material.name[..^11] : material.name;
         }
@@ -147,7 +143,7 @@ namespace Plugins.C_
 
         private void LoadForamens()
         {
-            var atlas = gameObject.GetComponent<AtlasCanvas>().atlas;
+            var atlas = gameObject.GetComponent<AtlasEditor>().atlas;
             var fileStream = new MyStream(
                 Path.Combine(Application.dataPath, ForamenPathes[atlas.gender]),
                 FileMode.Open, FileAccess.Read, FileShare.None, 1024 * 64, false
@@ -178,6 +174,38 @@ namespace Plugins.C_
             }
 
             fileStream.Close();
+        }
+
+        public Bonemark FindBonemarkData(Transform chickedModel, Vector2 uv)
+        {
+            // 检测是否是骨性标志shader
+            if (!chickedModel.TryGetComponent(out Renderer render))
+                return null;
+
+            var material = render.material;
+            if (material == null || material.shader.name != "ame3")
+                return null;
+
+            // 是否能拿到骨性标志贴图
+            var tex = material.GetTexture(ShaderIDTexInvisible) as Texture2D;
+            if (tex == null)
+                return null;
+
+            // Todo 设置选中颜色
+
+            var x = Mathf.Clamp((int)(uv.x * tex.width), 0, tex.width - 1);
+            var y = Mathf.Clamp((int)(uv.y * tex.height), 0, tex.height - 1);
+
+            var color = tex.GetPixel(x, y);
+
+            return new Bonemark
+            {
+                type = markType,
+                color =
+                    $"{Mathf.RoundToInt(color.r * 255)},{Mathf.RoundToInt(color.g * 255)},{Mathf.RoundToInt(color.b * 255)}",
+                uvx = x,
+                uvy = y
+            };
         }
     }
 }

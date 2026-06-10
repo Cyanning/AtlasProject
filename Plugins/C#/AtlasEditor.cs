@@ -9,7 +9,7 @@ using Plugins.C_.models;
 
 namespace Plugins.C_
 {
-    public class AtlasCanvas : MonoBehaviour
+    public class AtlasEditor : MonoBehaviour, ICanvasEditor
     {
         public string atlasFile;
         public List<Row> labelsMatrix;
@@ -21,6 +21,8 @@ namespace Plugins.C_
         private Text _activeInfo;
         private Text _atlasInfo;
         private MainCameraContraller _camCtrl;
+
+        private BoneMarkManager _boneMarkManager;  // 骨性标志控制脚本
 
         private static readonly HashSet<string> ValidRoots = new()
         {
@@ -41,6 +43,7 @@ namespace Plugins.C_
         {
             // 绑定主相机脚本
             _camCtrl = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<MainCameraContraller>();
+            _boneMarkManager = gameObject.AddComponent<BoneMarkManager>();
 
             //按钮绑定事件
             for (var i = 0; i < transform.childCount; i++)
@@ -72,6 +75,9 @@ namespace Plugins.C_
                     case "SaveAtlasCarmeraBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(SaveAtlasItemCarmera);
                         break;
+                    case "ChangeBonesBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(_boneMarkManager.SettingBonemarkMode);
+                        break;
                     case "AtlasInfo":
                         _atlasInfo = userInterface.GetComponent<Text>();
                         break;
@@ -88,22 +94,34 @@ namespace Plugins.C_
         }
 
         // 创建一个标签点位缓存
-        public void CreateActiveLabel(Transform clickedModel)
+        public void ClickRespond(Transform clickedModel)
         {
-            if (!(ValidRoots.Contains(clickedModel.root.name) && _camCtrl.GetPoint(out var point)))
+            if (!ValidRoots.Contains(clickedModel.root.name))
                 return;
 
-            var prefabNames = clickedModel.name.Split("~");
-            var timestamp = new DateTimeOffset(DateTime.Now).ToUnixTimeMilliseconds();
-            _activeLabel = new AtlasLabel
+            if (_camCtrl.GetPoint(out var point))
             {
-                name = prefabNames[0] + "_" + timestamp.ToString()[^4..],
-                value = Convert.ToInt32(prefabNames[1]),
-                pointPositionX = point.x,
-                pointPositionY = point.y,
-                pointPositionZ = point.z,
-            };
-            UpdateActiveInfo();
+                var prefabNames = clickedModel.name.Split("~");
+                var timestamp = new DateTimeOffset(DateTime.Now).ToUnixTimeMilliseconds();
+                _activeLabel = new AtlasLabel
+                {
+                    name = prefabNames[0] + "_" + timestamp.ToString()[^4..],
+                    value = Convert.ToInt32(prefabNames[1]),
+                    pointPositionX = point.x,
+                    pointPositionY = point.y,
+                    pointPositionZ = point.z,
+                };
+                UpdateActiveInfo();
+            }
+
+            if (_boneMarkManager.markType != 0 && _camCtrl.GetTextureUv(out var uv))
+            {
+                var bonemark = _boneMarkManager.FindBonemarkData(clickedModel, uv);
+                if (bonemark is not null)
+                {
+                    Debug.Log(bonemark.color);
+                }
+            }
         }
 
         // 设置标签位置

@@ -156,7 +156,7 @@ namespace Plugins.C_
 
             SetAssetsPath(TestGetData.TEST_NEW_RESOURCE_PATH);
             SetModelPath(
-                GameObject.Find("Canvas").GetComponent<AtlasCanvas>().atlas.gender == 1
+                GameObject.Find("Canvas").GetComponent<AtlasEditor>().atlas.gender == 1
                     ? TestGetData.TEST_NEW_MODEL_FEMALE_PATH
                     : TestGetData.TEST_NEW_MODEL_MALE_PATH
             );
@@ -303,7 +303,7 @@ namespace Plugins.C_
 
 
             var modelDisplay =
-                GameObject.Find("Canvas").GetComponent<AtlasCanvas>().atlas.modelDisplayed;
+                GameObject.Find("Canvas").GetComponent<AtlasEditor>().atlas.modelDisplayed;
             foreach (var childTransform in transforms)
             {
                 if (!childTransform.name.Contains("~") || childTransform.childCount > 0) continue;

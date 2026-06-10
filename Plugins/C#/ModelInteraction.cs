@@ -12,7 +12,6 @@ namespace Plugins.C_
         public static readonly List<ObjectColorModel> LastObject = new ();
         private static GameObject _mainCamera;
         private static Color _lastColor;
-        private static AtlasCanvas _atlasCanvas;
 
         public Vector3 center;
         public long beginTime;
@@ -28,7 +27,6 @@ namespace Plugins.C_
             _mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
             _fingerTouch = _mainCamera.GetComponent<FingerTouchForLittle>();
             _clickEvent = _mainCamera.GetComponent<ClickEvent>();
-            _atlasCanvas = GameObject.FindGameObjectWithTag("GameController").GetComponent<AtlasCanvas>();
         }
 
         public void OnClickCubeItem(BaseEventData data = null)
@@ -45,6 +43,7 @@ namespace Plugins.C_
 
             var targetRenderer = transform.gameObject.GetComponent<MeshRenderer>();
 
+            var gameController = GameObject.FindGameObjectWithTag("GameController").GetComponent<ICanvasEditor>();
             if (_clickEvent.showType == 0)
             {
                 var currentTime = Time.unscaledTime;
@@ -86,7 +85,7 @@ namespace Plugins.C_
                     tweener.onComplete = delegate
                     {
                         ClickEvent.isMoveAnima = false;
-                        _atlasCanvas.CreateActiveLabel(transform);
+                        gameController.ClickRespond(transform);
                     };
                     tweener.onKill = static delegate { };
                 }
@@ -94,14 +93,14 @@ namespace Plugins.C_
                 {
                     //string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
                     //_clickEvent.SetAlpha(clickModelName);
-                    _atlasCanvas.CreateActiveLabel(transform);
+                    gameController.ClickRespond(transform);
                 }
             }
             else
             {
                 //string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
                 //_clickEvent.SetAlpha(clickModelName);
-                _atlasCanvas.CreateActiveLabel(transform);
+                gameController.ClickRespond(transform);
             }
 
 

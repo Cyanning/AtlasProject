@@ -12,4 +12,21 @@ namespace Plugins.C_.models
         public Dictionary<int, Texture2D> Invisible = new();
         public Dictionary<int, Texture2D> Displayed = new();
     }
+
+    [Serializable]
+    public class Bonemark
+    {
+        public int type;
+        public int value;
+        public string name;
+        public string color;
+        public float uvx;
+        public float uvy;
+        public float cameraPositionX;
+        public float cameraPositionY;
+        public float cameraPositionZ;
+        public float cameraRotationX;
+        public float cameraRotationY;
+        public float cameraRotationZ;
+    }
 }

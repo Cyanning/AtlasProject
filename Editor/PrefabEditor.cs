@@ -17,7 +17,7 @@ namespace Editor
 
         private static IEnumerable<Transform> ForEachChildren(Transform root)
         {
-            if (root == null)
+            if (root is null)
             {
                 yield break;
             }
@@ -50,7 +50,7 @@ namespace Editor
             while (i < 4)
             {
                 var go = GameObject.Find(ModelNames[i]);
-                if (go == null)
+                if (go is null)
                 {
                     if (i < 2)
                     {
@@ -67,10 +67,13 @@ namespace Editor
                 // 获取所有显示的模型 value
                 foreach (var childTf in ForEachChildren(go.transform))
                 {
-                    if (childTf.childCount > 0) continue;
-
-                    if (BodyStruct.ByPrefabName(go.name, out var body))
+                    if (
+                        childTf.childCount == 0 &&
+                        childTf.gameObject.activeInHierarchy &&
+                        BodyStruct.ByPrefabName(childTf.name, out var body)
+                    )
                     {
+                        Debug.Log($"{body.name}={body.Value}");
                         values.Add(body);
                     }
                 }
@@ -88,16 +91,17 @@ namespace Editor
 
             // 引用显示中的模型
             var go = GameObject.Find(ModelNames[gender]);
-            if (go == null) return null;
+            if (go is null) return null;
 
             // 获取所有显示的模型 value
             foreach (var childTf in ForEachChildren(go.transform))
             {
-                if (childTf.childCount > 0) continue;
-
-                if (BodyStruct.ByPrefabName(go.name, out var body) &&
+                if (
+                    childTf.childCount == 0 &&
                     childTf.TryGetComponent<ModelTranslucent>(out var translucent) &&
-                    translucent.isTranslucnet)
+                    translucent.isTranslucnet &&
+                    BodyStruct.ByPrefabName(childTf.name, out var body)
+                )
                 {
                     values.Add(body);
                 }

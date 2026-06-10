@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Text;
 using UnityEditor;
@@ -8,39 +9,80 @@ namespace Plugins.C_.models
     public static class AtlasFactory
     {
         // folderName: folders/.../name
-        private static (string assets, string system) AtlasPath(string folderName, bool isSaving = false)
+        private static string CurrentAssetPath(
+            string folderName,
+            string databaseFolder = "Atlas_database",
+            string filePrefix = "Atlas_",
+            bool isSaving = false)
         {
-            var directory = Path.Combine("Atlas_database", Path.GetDirectoryName(folderName) ?? "");
-
-            if (!Directory.Exists(directory) && isSaving)
+            if (string.IsNullOrEmpty(folderName))
             {
-                Directory.CreateDirectory(directory);
+                throw new ArgumentException("Folder name is empty.", nameof(folderName));
+            }
+
+            var assetsFolder = Path.Combine("Assets", databaseFolder, Path.GetDirectoryName(folderName) ?? "");
+
+            if (!Directory.Exists(assetsFolder) && isSaving)
+            {
+                Directory.CreateDirectory(assetsFolder);
             }
 
             var fileName = Path.GetFileNameWithoutExtension(folderName);
-            if (fileName.StartsWith("Atlas_"))
+
+            if (!string.IsNullOrEmpty(filePrefix) && fileName.StartsWith(filePrefix))
             {
-                fileName = fileName[6..];
+                fileName = fileName[filePrefix.Length..];
             }
 
-            var relativePath = Path.Combine(directory, $"Atlas_{fileName}.json");
-            return (
-                Path.Combine("Assets", relativePath),
-                Path.Combine(Application.dataPath, relativePath)
+            return Path.Combine(assetsFolder, $"{filePrefix}{fileName}.json").Replace('\\', '/');
+        }
+
+        public static bool Load<T>(
+            string folderName,
+            out T item,
+            string databaseFolder = "Atlas_database",
+            string filePrefix = "Atlas_") where T : class
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<TextAsset>(
+                CurrentAssetPath(folderName, databaseFolder, filePrefix)
             );
+
+            if (asset is null)
+            {
+                item = null;
+                return false;
+            }
+
+            item = JsonUtility.FromJson<T>(asset.text);
+            return true;
         }
 
         public static bool Load(string folderName, out AtlasItem atlas)
         {
-            var atlasAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(AtlasPath(folderName).assets);
-            if (atlasAsset is null)
+            return Load<AtlasItem>(folderName, out atlas);
+        }
+
+        public static void Save<T>(
+            T item,
+            string folderName,
+            bool uniformName = false,
+            Action<T, string> uniformNameSetter = null,
+            string databaseFolder = "Atlas_database",
+            string filePrefix = "Atlas_") where T : class
+        {
+            if (item is null)
             {
-                atlas = null;
-                return false;
+                throw new ArgumentNullException(nameof(item));
             }
 
-            atlas = JsonUtility.FromJson<AtlasItem>(atlasAsset.text);
-            return true;
+            if (uniformName)
+            {
+                uniformNameSetter?.Invoke(item, Path.GetFileName(folderName));
+            }
+
+            var path = CurrentAssetPath(folderName, databaseFolder, filePrefix, true);
+            File.WriteAllText(Path.GetFullPath(path), JsonUtility.ToJson(item), Encoding.UTF8);
+            AssetDatabase.ImportAsset(path);
         }
 
         // 若 uniformName 为 true，则将 folderName 中的名字赋值给 atlas的 name属性
@@ -48,14 +90,7 @@ namespace Plugins.C_.models
         public static void Save(AtlasItem atlas, string folderName = null, bool uniformName = false)
         {
             folderName ??= atlas.name;
-            if (uniformName)
-            {
-                atlas.name = Path.GetFileName(folderName);
-            }
-
-            var path = AtlasPath(folderName, true);
-            File.WriteAllText(path.system, JsonUtility.ToJson(atlas), Encoding.UTF8);
-            AssetDatabase.ImportAsset(path.assets);
+            Save(atlas, folderName, uniformName, (item, name) => item.name = name);
         }
     }
 }
