@@ -88,8 +88,8 @@ namespace Plugins.C_
                 material.shader = Shader.Find("ame3");
                 material.SetColor(ShaderIDBgcolor, Color.white);
                 material.SetInt(ShaderIDTranslucent, 1);
-                material.SetTexture(ShaderIDTexInvisible, _textures[markName].Invisible[markType]);
-                material.SetTexture(ShaderIDTexDisplayed, _textures[markName].Displayed[markType]);
+                material.SetTexture(ShaderIDTexInvisible, _textures[markName].invisible[markType]);
+                material.SetTexture(ShaderIDTexDisplayed, _textures[markName].displayed[markType]);
             }
         }
 
@@ -133,11 +133,11 @@ namespace Plugins.C_
 
                 var texI = new Texture2D(1, 1);
                 texI.LoadImage(File.ReadAllBytes(mapInvisiblePath));
-                _textures[markName].Invisible[i] = texI;
+                _textures[markName].invisible[i] = texI;
 
                 var texD = new Texture2D(1, 1);
                 texD.LoadImage(File.ReadAllBytes(mapDisplayedPath));
-                _textures[markName].Displayed[i] = texD;
+                _textures[markName].displayed[i] = texD;
             }
         }
 

@@ -3,11 +3,11 @@ using System.Text;
 using UnityEditor;
 using UnityEngine;
 
-namespace Editor.models
+namespace Editor.Atlas
 {
     public static class CookieWrapper
     {
-        private const string CookiePath = "Editor/cookie.txt";
+        private const string CookiePath = "Editor/Atlas/cookie.txt";
         private static readonly string CookieInAsset = Path.Combine("Assets", CookiePath);
 
         public static void Create(string context)

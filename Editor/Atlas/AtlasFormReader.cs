@@ -1,15 +1,14 @@
 using UnityEditor;
 using UnityEngine;
 using Plugins.C_.models;
-using Editor.models;
 
-namespace Editor
+namespace Editor.Atlas
 {
     public class AtlasFormReader : EditorWindow
     {
         private string _atlasName;
 
-        [MenuItem("图谱/读取图谱")]
+        [MenuItem("自定义功能/图谱-读取模型")]
         public static void ShowWindow()
         {
             GetWindow<AtlasFormReader>("读取图谱");

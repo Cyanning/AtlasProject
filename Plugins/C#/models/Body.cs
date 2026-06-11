@@ -6,7 +6,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEditor;
 
-namespace Editor.models
+namespace Plugins.C_.models
 {
     [Serializable]
     public class BodyStruct : IEquatable<BodyStruct>

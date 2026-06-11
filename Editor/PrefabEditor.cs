@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Plugins.C_;
-using Editor.models;
+using Plugins.C_.models;
 
 namespace Editor
 {
@@ -73,7 +73,6 @@ namespace Editor
                         BodyStruct.ByPrefabName(childTf.name, out var body)
                     )
                     {
-                        Debug.Log($"{body.name}={body.Value}");
                         values.Add(body);
                     }
                 }

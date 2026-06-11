@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace Editor.models
+namespace Editor.Atlas
 {
     [Serializable]
     public class TypeItem

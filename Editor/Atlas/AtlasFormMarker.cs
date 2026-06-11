@@ -2,9 +2,8 @@ using System;
 using UnityEditor;
 using UnityEngine;
 using Plugins.C_.models;
-using Editor.models;
 
-namespace Editor
+namespace Editor.Atlas
 {
     public class AtlasFormMarker : EditorWindow
     {
@@ -18,7 +17,7 @@ namespace Editor
         private TypeItem[] _atlasTypes;
 
         //MenuItem会在unity菜单栏添加自定义新项
-        [MenuItem("图谱/创建图谱")]
+        [MenuItem("自定义功能/图谱-新建")]
         public static void ShowWindow()
         {
             GetWindow<AtlasFormMarker>("创建图谱");
@@ -120,7 +119,7 @@ namespace Editor
             atlas.types = TypesConfig.IdNumsSelected(_atlasTypes, _atlasTypeFlags);
 
             //保存文件
-            AtlasFactory.Save(atlas, _atlasFile, true);
+            AtlasFactory.Save(atlas, _atlasFile);
             CookieWrapper.Create(_atlasFile);
             Debug.Log($"新的图谱 {atlas.name} 数据已建立");
         }

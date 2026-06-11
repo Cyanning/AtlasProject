@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,15 +8,13 @@ namespace Plugins.C_
 {
     public class BoneMarkEditor : MonoBehaviour, ICanvasEditor
     {
-        public string atlasFile;
-        public List<Row> labelsMatrix;
+        public string fileName;
 
-        public List<Bonemark> bonemarks; // 缓存的骨标
+        public Bone bone; // 缓存的骨标
         [CanBeNull] private Bonemark _bonemark; // 上一个点击的骨标
 
-        private Text _activeInfo;
-        private MainCameraContraller _camCtrl;
-
+        private Text _activeInfo; // 信息框文字
+        private MainCameraContraller _camCtrl; // 封装的相机对象
         private BoneMarkManager _boneMarkManager;  // 骨性标志控制脚本
 
         private static readonly HashSet<string> ValidRoots = new()
@@ -32,7 +28,10 @@ namespace Plugins.C_
         private void Awake()
         {
             // 初始化数据
-            bonemarks = new List<Bonemark>();
+            if (!BoneFactory.Load(fileName, out bone))
+            {
+                Debug.LogWarning("Bone Not Found!");
+            }
         }
 
         private void Start()
@@ -69,6 +68,9 @@ namespace Plugins.C_
             UpdateActiveInfo();
         }
 
+        public string[] ModelDisplayed => bone.family;
+        public int ModelGender => bone.gender;
+
         // 创建一个骨性标注缓存
         public void ClickRespond(Transform clickedModel)
         {
@@ -77,13 +79,14 @@ namespace Plugins.C_
 
             if (_boneMarkManager.markType != 0 && _camCtrl.GetTextureUv(out var uv))
             {
+
                 _bonemark = _boneMarkManager.FindBonemarkData(clickedModel, uv);
             }
         }
 
         private void AddBonemarks()
         {
-            bonemarks.Add(_bonemark);
+            bone.bonemarks.Add(_bonemark);
         }
 
         // 视角复位
@@ -94,13 +97,21 @@ namespace Plugins.C_
 
         private void SaveBonemarks()
         {
-
+            BoneFactory.Save(bone, fileName);
         }
 
-        private void UpdateActiveInfo(string tipsInfo = null, bool isAdd = false)
+        private void UpdateActiveInfo()
         {
-
+            if (_bonemark is null)
+            {
+                _activeInfo.text = "点击部位生成数据";
+            }
+            else
+            {
+                _activeInfo.text =
+                    $"Value: {_bonemark.value}\n" +
+                    $"Name: {_bonemark.name}";
+            }
         }
-
     }
 }

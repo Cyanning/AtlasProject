@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Plugins.C_;
-using Editor.models;
+using Plugins.C_.models;
 
 namespace Editor
 {
@@ -53,7 +53,7 @@ namespace Editor
 
 
     // 设置模型显示状态: activeInHierarchy 属性
-    public class PrefabSetActive : PrefabSetter
+    public sealed class PrefabSetActive : PrefabSetter
     {
         protected override bool InitialValue => false;
 
@@ -74,7 +74,7 @@ namespace Editor
     }
 
     // 设置模型透明状态: ModelTranslucent 属性
-    public class PrefabSetTranslucent : PrefabSetter
+    public sealed class PrefabSetTranslucent : PrefabSetter
     {
         protected override bool InitialValue => true;
 

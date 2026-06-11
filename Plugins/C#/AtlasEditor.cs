@@ -35,7 +35,10 @@ namespace Plugins.C_
         private void Awake()
         {
             // 初始化图谱数据
-            AtlasFactory.Load(atlasFile, out atlas);
+            if (AtlasFactory.Load(atlasFile, out atlas))
+            {
+                Debug.LogWarning("Atlas Not Found!");
+            }
             _currentGroupIndex = -1;
         }
 
@@ -93,7 +96,11 @@ namespace Plugins.C_
             UpdateAtlasInfo();
         }
 
-        // 创建一个标签点位缓存
+        // 通过画板接口操作模型显示
+        public int ModelGender => atlas.gender;
+        public string[] ModelDisplayed => atlas.modelDisplayed;
+
+        // 创建一个标签点位缓存 通过画板接口
         public void ClickRespond(Transform clickedModel)
         {
             if (!ValidRoots.Contains(clickedModel.root.name))
@@ -239,7 +246,7 @@ namespace Plugins.C_
         private void SaveAtlas()
         {
             LabellabelsMatrixConvertToLabels();
-            AtlasFactory.Save(atlas, atlasFile, true);
+            AtlasFactory.Save(atlas, atlasFile);
             _currentGroupIndex = -1;
             _activeLabel = null;
             UpdateActiveInfo("图谱存储成功");

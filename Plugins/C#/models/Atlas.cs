@@ -106,4 +106,32 @@ namespace Plugins.C_.models
             }
         }
     }
+
+    public sealed class AtlasFactory : TextAssetFactory<AtlasItem>
+    {
+        // 专属内容重写
+        protected override string FilePrefix => "Atlas_";
+
+        protected override string GetDefaultAssetName(AtlasItem item)
+        {
+            return item.name;
+        }
+
+        protected override void ApplyUniformName(string assetName, AtlasItem item)
+        {
+            item.name = assetName;
+        }
+
+        private static readonly AtlasFactory Instance = new ();
+
+        public static bool Load(string assetName, out AtlasItem item)
+        {
+            return Instance.LoadAsset(assetName, out item);
+        }
+
+        public static void Save(AtlasItem item, string assetName = null)
+        {
+            Instance.SaveAsset(item, assetName);
+        }
+    }
 }
