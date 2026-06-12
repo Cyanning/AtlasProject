@@ -148,29 +148,30 @@ namespace Plugins.C_
                     LastObject.Clear();
                 }
 
-                Color nowColor;
-                var path = GetGameObjectPath(transform);
-                if (path.Contains("淋巴系统~150001"))
-                {
-                    ColorUtility.TryParseHtmlString("#FF0000", out nowColor);
-                }
-                else
-                {
-                    ColorUtility.TryParseHtmlString("#7eb678", out nowColor);
-                }
-
-                if (_clickEvent.showType == 3)
-                {
-                    ColorUtility.TryParseHtmlString("#00FF00", out nowColor);
-                }
-
-                SetMeshColor(targetRenderer, nowColor, _clickEvent.isShowLittle);
-
-                var model = new ObjectColorModel {Obj = transform.gameObject, LastColor = _lastColor};
-                if (_lastColor != nowColor)
-                {
-                    LastObject.Add(model);
-                }
+                // 设置选中颜色
+                // Color nowColor;
+                // var path = GetGameObjectPath(transform);
+                // if (path.Contains("淋巴系统~150001"))
+                // {
+                //     ColorUtility.TryParseHtmlString("#FF0000", out nowColor);
+                // }
+                // else
+                // {
+                //     ColorUtility.TryParseHtmlString("#7eb678", out nowColor);
+                // }
+                //
+                // if (_clickEvent.showType == 3)
+                // {
+                //     ColorUtility.TryParseHtmlString("#00FF00", out nowColor);
+                // }
+                //
+                // SetMeshColor(targetRenderer, nowColor, _clickEvent.isShowLittle);
+                //
+                // var model = new ObjectColorModel {Obj = transform.gameObject, LastColor = _lastColor};
+                // if (_lastColor != nowColor)
+                // {
+                //     LastObject.Add(model);
+                // }
             }
             // else
             // {

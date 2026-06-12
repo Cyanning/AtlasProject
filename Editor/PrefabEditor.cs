@@ -70,7 +70,7 @@ namespace Editor
                     if (
                         childTf.childCount == 0 &&
                         childTf.gameObject.activeInHierarchy &&
-                        BodyStruct.ByPrefabName(childTf.name, out var body)
+                        BodyStruct.TryInstance(childTf.name, out var body)
                     )
                     {
                         values.Add(body);
@@ -98,10 +98,10 @@ namespace Editor
                 if (
                     childTf.childCount == 0 &&
                     childTf.TryGetComponent<ModelTranslucent>(out var translucent) &&
-                    translucent.isTranslucnet &&
-                    BodyStruct.ByPrefabName(childTf.name, out var body)
+                    translucent.isTranslucnet
                 )
                 {
+                    var body = new BodyStruct(childTf.name);
                     values.Add(body);
                 }
             }

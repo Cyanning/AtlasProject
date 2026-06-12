@@ -143,15 +143,15 @@ namespace Plugins.C_
 
         private void LoadForamens()
         {
-            var atlas = gameObject.GetComponent<AtlasEditor>().atlas;
+            var canvas = gameObject.GetComponent<ICanvasEditor>();
             var fileStream = new MyStream(
-                Path.Combine(Application.dataPath, ForamenPathes[atlas.gender]),
+                Path.Combine(Application.dataPath, ForamenPathes[canvas.ModelGender]),
                 FileMode.Open, FileAccess.Read, FileShare.None, 1024 * 64, false
             );
 
             _foramensAsset = AssetBundle.LoadFromStream(fileStream);
 
-            _foramens = Instantiate(_foramensAsset.LoadAsset<GameObject>(ForamenNames[atlas.gender]));
+            _foramens = Instantiate(_foramensAsset.LoadAsset<GameObject>(ForamenNames[canvas.ModelGender]));
             _foramens.transform.position = _clickEvent.mObj.transform.position;
             _foramens.transform.rotation = _clickEvent.mObj.transform.rotation;
             _foramens.transform.localScale = _clickEvent.mObj.transform.localScale;
@@ -161,7 +161,7 @@ namespace Plugins.C_
                 if (foramen.childCount > 0 || foramen.name[^8..^5] != "~22") continue;
 
                 var modelValue = foramen.name[^7..];
-                if (atlas.modelDisplayed.Contains(modelValue))
+                if (canvas.ModelDisplayed.Contains(modelValue))
                 {
                     _clickEvent.AllObject.Add(modelValue, foramen.gameObject);
                 }
@@ -176,36 +176,46 @@ namespace Plugins.C_
             fileStream.Close();
         }
 
-        public Bonemark FindBonemarkData(Transform chickedModel, Vector2 uv)
+        public bool FindBonemarkData(Transform chickedModel, Vector2 uv, out Bonemark bonemark)
         {
+            bonemark = null;
             // 检测是否是骨性标志shader
             if (!chickedModel.TryGetComponent(out Renderer render))
-                return null;
+                return false;
 
             var material = render.material;
             if (material == null || material.shader.name != "ame3")
-                return null;
+                return false;
 
             // 是否能拿到骨性标志贴图
             var tex = material.GetTexture(ShaderIDTexInvisible) as Texture2D;
             if (tex == null)
-                return null;
+                return false;
 
             // Todo 设置选中颜色
 
-            var x = Mathf.Clamp((int)(uv.x * tex.width), 0, tex.width - 1);
-            var y = Mathf.Clamp((int)(uv.y * tex.height), 0, tex.height - 1);
+            var color = tex.GetPixel(
+                Mathf.Clamp((int)(uv.x * tex.width), 0, tex.width - 1),
+                Mathf.Clamp((int)(uv.y * tex.height), 0, tex.height - 1)
+            );
+            var r = Mathf.RoundToInt(color.r * 255);
+            var g = Mathf.RoundToInt(color.g * 255);
+            var b = Mathf.RoundToInt(color.b * 255);
+            if (r == 255 && g == 255 && b == 255)
+                return false;
 
-            var color = tex.GetPixel(x, y);
-
-            return new Bonemark
+            var body = new BodyStruct(chickedModel.name);
+            bonemark = new Bonemark
             {
                 type = markType,
-                color =
-                    $"{Mathf.RoundToInt(color.r * 255)},{Mathf.RoundToInt(color.g * 255)},{Mathf.RoundToInt(color.b * 255)}",
-                uvx = x,
-                uvy = y
+                value = body.value,
+                name = body.name,
+                color = $"{r},{g},{b}",
+                uvx = uv.x,
+                uvy = uv.y
             };
+
+            return true;
         }
     }
 }

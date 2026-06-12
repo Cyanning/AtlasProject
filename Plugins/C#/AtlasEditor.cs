@@ -123,8 +123,7 @@ namespace Plugins.C_
 
             if (_boneMarkManager.markType != 0 && _camCtrl.GetTextureUv(out var uv))
             {
-                var bonemark = _boneMarkManager.FindBonemarkData(clickedModel, uv);
-                if (bonemark is not null)
+                if (_boneMarkManager.FindBonemarkData(clickedModel, uv, out var bonemark))
                 {
                     Debug.Log(bonemark.color);
                 }

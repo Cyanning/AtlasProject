@@ -15,7 +15,7 @@ namespace Plugins.C_
 
         private Text _activeInfo; // 信息框文字
         private MainCameraContraller _camCtrl; // 封装的相机对象
-        private BoneMarkManager _boneMarkManager;  // 骨性标志控制脚本
+        private BoneMarkManager _boneMarkManager; // 骨性标志控制脚本
 
         private static readonly HashSet<string> ValidRoots = new()
         {
@@ -71,46 +71,78 @@ namespace Plugins.C_
         public string[] ModelDisplayed => bone.family;
         public int ModelGender => bone.gender;
 
-        // 创建一个骨性标注缓存
+        // 创建一个新骨性标注缓存
         public void ClickRespond(Transform clickedModel)
         {
             if (!ValidRoots.Contains(clickedModel.root.name))
                 return;
 
-            if (_boneMarkManager.markType != 0 && _camCtrl.GetTextureUv(out var uv))
-            {
-
-                _bonemark = _boneMarkManager.FindBonemarkData(clickedModel, uv);
-            }
+            if (
+                _boneMarkManager.markType != 0 &&
+                _camCtrl.GetTextureUv(out var uv) &&
+                _boneMarkManager.FindBonemarkData(clickedModel, uv, out _bonemark)
+            )
+                UpdateActiveInfo("新建：\n");
         }
 
         private void AddBonemarks()
         {
+            if (_bonemark is null) return;
+
+            var pos = _camCtrl.GetMainCameraPostion();
+            var rot = _camCtrl.GetMainCameraRotation();
+            _bonemark.cameraPositionX = pos.x;
+            _bonemark.cameraPositionY = pos.y;
+            _bonemark.cameraPositionZ = pos.z;
+            _bonemark.cameraRotationX = rot.x;
+            _bonemark.cameraRotationY = rot.y;
+            _bonemark.cameraRotationZ = rot.z;
             bone.bonemarks.Add(_bonemark);
+
+            UpdateActiveInfo("已添加：\n");
         }
 
         // 视角复位
         private void ResetAtlasCarmera()
         {
-            _camCtrl.SetCameraTransform(0,0,0,0,0,0);
+            if (bone.bonemarks.Count > 0)
+            {
+                _camCtrl.SetCameraTransform(
+                    bone.bonemarks[^1].cameraPositionX,
+                    bone.bonemarks[^1].cameraPositionY,
+                    bone.bonemarks[^1].cameraPositionZ,
+                    bone.bonemarks[^1].cameraRotationX,
+                    bone.bonemarks[^1].cameraRotationY,
+                    bone.bonemarks[^1].cameraRotationZ
+                );
+            }
+            else
+            {
+                _camCtrl.ResetTransform();
+            }
         }
 
         private void SaveBonemarks()
         {
             BoneFactory.Save(bone, fileName);
+            _bonemark = null;
+            UpdateActiveInfo("所有标志已保存");
         }
 
-        private void UpdateActiveInfo()
+        private void UpdateActiveInfo(string tipsInfo = "")
         {
             if (_bonemark is null)
             {
-                _activeInfo.text = "点击部位生成数据";
+                _activeInfo.text = string.IsNullOrEmpty(tipsInfo) ? "点击任意骨性标志生成数据" : tipsInfo;
             }
             else
             {
                 _activeInfo.text =
+                    tipsInfo +
                     $"Value: {_bonemark.value}\n" +
-                    $"Name: {_bonemark.name}";
+                    $"Name: {_bonemark.name}\n" +
+                    $"Color: {_bonemark.color}\n" +
+                    $"Uv: {_bonemark.uvx}, {_bonemark.uvy}";
             }
         }
     }

@@ -40,13 +40,12 @@ namespace Editor
                     flag = LogicalCalculus(flag, childFlag);
                 }
             }
-            else if (BodyStruct.ByPrefabName(nodeTf.name, out var body))
+            else if (BodyStruct.TryInstance(nodeTf.name, out var body))
             {
                 flag = _checkList.Contains(body.value);
             }
 
             CheckState(nodeGo, flag);
-
             return flag;
         }
     }

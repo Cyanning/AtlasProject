@@ -27,6 +27,11 @@ namespace Plugins.C_
             return result;
         }
 
+        public void ResetTransform()
+        {
+            SetCameraTransform(0.025f, -0.075f, -0.95f, -4.5f, -1.5f, 0f);
+        }
+
         public void SetCameraTransform(float posX, float posY, float posZ, float rotX, float rotY, float rotZ)
         {
             _cam.transform.position = new Vector3(posX, posY, posZ);

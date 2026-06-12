@@ -11,9 +11,8 @@ namespace Plugins.C_.models
     [Serializable]
     public class BodyStruct : IEquatable<BodyStruct>
     {
-        public string name;
-        public int value;
-
+        public readonly string name;
+        public readonly int value;
         private readonly string _key;
 
         public BodyStruct(string name, int value)
@@ -26,32 +25,40 @@ namespace Plugins.C_.models
         public BodyStruct(int value)
         {
             this.value = value;
+            name = "";
             _key = value.ToString();
         }
 
-        public BodyStruct(string value)
+        public BodyStruct(string tittle)
         {
-            Value = value;
-            _key = value;
-        }
-
-        public static bool ByPrefabName(string prefabName, out BodyStruct body)
-        {
-            var temp = prefabName.Split('~');
-            if (temp.Length == 2 && temp[1].Length is 6 or 7)
+            if (int.TryParse(tittle, out var val))
             {
-                body = new BodyStruct(temp[0], Convert.ToInt32(temp[1]));
-                return true;
+                value = val;
+                _key = tittle;
+                return;
             }
 
-            body = null;
-            return false;
+            if (tittle.Contains("~"))
+            {
+                var temp = tittle.Split('~');
+                if (temp.Length == 2 && temp[1].Length is 6 or 7)
+                {
+                    name = temp[0];
+                    value = Convert.ToInt32(temp[1]);
+                    _key = $"{name}~{value}";
+                    return;
+                }
+            }
+
+            value = 0;
+            name = tittle;
+            _key = tittle;
         }
 
-        public string Value
+        public static bool TryInstance(string tittle, out BodyStruct body)
         {
-            get => value.ToString();
-            set => this.value = Convert.ToInt32(value);
+            body = new BodyStruct(tittle);
+            return body.value != 0;
         }
 
         public int GenderNum()
