@@ -22,8 +22,8 @@ namespace Plugins.C_
         private Dictionary<string, BoneMaps> _textures;
 
         // 着色器属性
-        private static readonly int ShaderIDUvx = Shader.PropertyToID("_uvx");
-        private static readonly int ShaderIDUvy = Shader.PropertyToID("_uvy");
+        // private static readonly int ShaderIDUvx = Shader.PropertyToID("_uvx");
+        // private static readonly int ShaderIDUvy = Shader.PropertyToID("_uvy");
         private static readonly int ShaderIDBgcolor = Shader.PropertyToID("bs");
         private static readonly int ShaderIDTranslucent = Shader.PropertyToID("_bskg");
         private static readonly int ShaderIDTexDisplayed = Shader.PropertyToID("_albe");
@@ -67,8 +67,9 @@ namespace Plugins.C_
             var materials = new HashSet<Material>();
             foreach (var obj in _clickEvent.mObj.GetComponentsInChildren<Transform>())
             {
-                if (obj.childCount > 0) continue;
+                if (obj.childCount > 0 || !obj.name.Contains("~10")) continue;
                 var material = obj.GetComponent<Renderer>().material;
+
                 if (!material.name.StartsWith("Guge")) continue;
                 materials.Add(material);
             }
@@ -179,10 +180,26 @@ namespace Plugins.C_
         public bool FindBonemarkData(Transform chickedModel, Vector2 uv, out Bonemark bonemark)
         {
             bonemark = null;
+
+            // 检测预制体是否合法
+            if (!BodyStruct.TryInstance(chickedModel.name, out var body))
+                return false;
+
+            // 判断是否是孔洞虚拟模型
+            if (body.name.StartsWith("foramens_"))
+            {
+                bonemark = new Bonemark
+                {
+                    type = markType,
+                    name = body.name,
+                    planeValue = body.value
+                };
+                return true;
+            }
+
             // 检测是否是骨性标志shader
             if (!chickedModel.TryGetComponent(out Renderer render))
                 return false;
-
             var material = render.material;
             if (material == null || material.shader.name != "ame3")
                 return false;
@@ -201,10 +218,9 @@ namespace Plugins.C_
             var r = Mathf.RoundToInt(color.r * 255);
             var g = Mathf.RoundToInt(color.g * 255);
             var b = Mathf.RoundToInt(color.b * 255);
-            if (r == 255 && g == 255 && b == 255)
+            if (255 - r < 5 && 255 - g < 5 && 255 - b < 5)
                 return false;
 
-            var body = new BodyStruct(chickedModel.name);
             bonemark = new Bonemark
             {
                 type = markType,

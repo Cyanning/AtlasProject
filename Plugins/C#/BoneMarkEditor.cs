@@ -83,6 +83,7 @@ namespace Plugins.C_
                 _boneMarkManager.FindBonemarkData(clickedModel, uv, out _bonemark)
             )
                 UpdateActiveInfo("新建：\n");
+            UpdateActiveInfo();
         }
 
         private void AddBonemarks()
@@ -107,13 +108,14 @@ namespace Plugins.C_
         {
             if (bone.bonemarks.Count > 0)
             {
+                var mark = bone.bonemarks[^1];
                 _camCtrl.SetCameraTransform(
-                    bone.bonemarks[^1].cameraPositionX,
-                    bone.bonemarks[^1].cameraPositionY,
-                    bone.bonemarks[^1].cameraPositionZ,
-                    bone.bonemarks[^1].cameraRotationX,
-                    bone.bonemarks[^1].cameraRotationY,
-                    bone.bonemarks[^1].cameraRotationZ
+                    mark.cameraPositionX,
+                    mark.cameraPositionY,
+                    mark.cameraPositionZ,
+                    mark.cameraRotationX,
+                    mark.cameraRotationY,
+                    mark.cameraRotationZ
                 );
             }
             else
@@ -134,6 +136,13 @@ namespace Plugins.C_
             if (_bonemark is null)
             {
                 _activeInfo.text = string.IsNullOrEmpty(tipsInfo) ? "点击任意骨性标志生成数据" : tipsInfo;
+            }
+            else if (string.IsNullOrEmpty(_bonemark.color))
+            {
+                _activeInfo.text =
+                    tipsInfo +
+                    $"Name: {_bonemark.name}\n" +
+                    $"Plane Value: {_bonemark.planeValue}";
             }
             else
             {

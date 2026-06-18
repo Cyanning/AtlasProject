@@ -43,9 +43,9 @@ namespace Plugins.C_
             var pos = _cam.transform.position;
             return new Vector3
             {
-                x = (float)Math.Round(pos.x, 2, MidpointRounding.AwayFromZero),
-                y = (float)Math.Round(pos.x, 2, MidpointRounding.AwayFromZero),
-                z = (float)Math.Round(pos.x, 2, MidpointRounding.AwayFromZero)
+                x = pos.x,
+                y = pos.y,
+                z = pos.z
             };
         }
 

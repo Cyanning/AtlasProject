@@ -27,6 +27,7 @@ namespace Plugins.C_
             _mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
             _fingerTouch = _mainCamera.GetComponent<FingerTouchForLittle>();
             _clickEvent = _mainCamera.GetComponent<ClickEvent>();
+
         }
 
         public void OnClickCubeItem(BaseEventData data = null)

@@ -1,12 +1,11 @@
 ﻿using UnityEngine;
 
 
-/// <summary>
-/// 脚本挂载新建相机上 —— 
-/// </summary>
-
 namespace Plugins.C_
 {
+    /// <summary>
+    /// 脚本挂载新建相机上 ——
+    /// </summary>
     public class SmoothCamera : MonoBehaviour
     {
         public Transform pivot;
@@ -45,20 +44,19 @@ namespace Plugins.C_
 
         private void LateUpdate()
         {
-            if (!pivot) return;
             var scroll = Input.GetAxis("Mouse ScrollWheel");
             if (scroll > 0.0f)
             {
-                Vector3 tmp = new Vector3(0, 0, -1 * (0.025f));
+                var tmp = new Vector3(0, 0, -1 * (0.025f));
 
-                Vector3 position = transform.position - transform.rotation * tmp;
+                var position = transform.position - transform.rotation * tmp;
                 transform.position = position;
             }
             else if (scroll < 0.0f)
             {
-                Vector3 tmp = new Vector3(0, 0, 1 * (0.025f));
+                var tmp = new Vector3(0, 0, 1 * (0.025f));
 
-                Vector3 position = transform.position - transform.rotation * tmp;
+                var position = transform.position - transform.rotation * tmp;
                 transform.position = position;
             }
 
@@ -84,16 +82,19 @@ namespace Plugins.C_
 
             if (Input.GetMouseButton(1))
             {
-                if (transform.up.y > 0)
-                {
-                    transform.RotateAround(ClickEvent.RotationCenter, new Vector3(0, 1, 0),
-                        Input.GetAxis("Mouse X") * 6);
-                }
-                else
-                {
-                    transform.RotateAround(ClickEvent.RotationCenter, new Vector3(0, 1, 0),
-                        Input.GetAxis("Mouse X") * 6);
-                }
+                transform.RotateAround(
+                    ClickEvent.RotationCenter, new Vector3(0, 1, 0), Input.GetAxis("Mouse X") * 6
+                );
+                // if (transform.up.y > 0)
+                // {
+                //     transform.RotateAround(ClickEvent.RotationCenter, new Vector3(0, 1, 0),
+                //         Input.GetAxis("Mouse X") * 6);
+                // }
+                // else
+                // {
+                //     transform.RotateAround(ClickEvent.RotationCenter, new Vector3(0, 1, 0),
+                //         Input.GetAxis("Mouse X") * 6);
+                // }
 
                 transform.RotateAround(ClickEvent.RotationCenter, transform.right, -Input.GetAxis("Mouse Y") * 6);
             }

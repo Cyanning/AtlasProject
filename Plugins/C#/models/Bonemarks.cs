@@ -20,6 +20,7 @@ namespace Plugins.C_.models
         public int value;
         public string name;
         public string color;
+        public int planeValue;
         public float uvx;
         public float uvy;
         public float cameraPositionX;
