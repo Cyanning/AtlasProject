@@ -1,10 +1,11 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEditor;
+using Plugins.C_.models.orm;
 
 namespace Plugins.C_.models
 {
@@ -15,10 +16,10 @@ namespace Plugins.C_.models
         public readonly int value;
         private readonly string _key;
 
-        public BodyStruct(string name, int value)
+        public BodyStruct(int value, string name)
         {
-            this.name = name;
             this.value = value;
+            this.name = name;
             _key = $"{name}~{value}";
         }
 
@@ -26,49 +27,30 @@ namespace Plugins.C_.models
         {
             this.value = value;
             name = "";
-            _key = value.ToString();
+            _key = $"{name}~{value}";
         }
 
-        public BodyStruct(string tittle)
+        public BodyStruct(string title)
         {
-            if (int.TryParse(tittle, out var val))
+            string valueText;
+            string nameText;
+
+            if (title is null) return;
+
+            if (title.Contains("~") && title.Split('~') is { Length: 2 } temp)
             {
-                value = val;
-                _key = tittle;
-                return;
+                valueText = temp[1];
+                nameText = temp[0];
+            }
+            else
+            {
+                valueText = title.Trim();
+                nameText = "";
             }
 
-            if (tittle.Contains("~"))
-            {
-                var temp = tittle.Split('~');
-                if (temp.Length == 2 && temp[1].Length is 6 or 7)
-                {
-                    name = temp[0];
-                    value = Convert.ToInt32(temp[1]);
-                    _key = $"{name}~{value}";
-                    return;
-                }
-            }
+            name = int.TryParse(valueText, out value) ? nameText : title;
 
-            value = 0;
-            name = tittle;
-            _key = tittle;
-        }
-
-        public static bool TryInstance(string tittle, out BodyStruct body)
-        {
-            body = new BodyStruct(tittle);
-            return body.value != 0;
-        }
-
-        public int GenderNum()
-        {
-            return (value < 1000000 ? value / 1000 : value / 10000) % 10;
-        }
-
-        public int SystemNum()
-        {
-            return (value < 1000000 ? value / 10000 : value / 100000) - 10;
+            _key = $"{name}~{value}";
         }
 
         public bool Equals(BodyStruct other)
@@ -89,6 +71,22 @@ namespace Plugins.C_.models
         {
             return HashCode.Combine(_key);
         }
+
+        public static bool GetFromPrefab(string title, out BodyStruct body)
+        {
+            body = new BodyStruct(title);
+            return body.value > 0 && body.name.Length > 0;
+        }
+
+        public int GenderNum()
+        {
+            return (value < 1000000 ? value / 1000 : value / 10000) % 10;
+        }
+
+        public int SystemNum()
+        {
+            return (value < 1000000 ? value / 10000 : value / 100000) - 10;
+        }
     }
 
     [Serializable]
@@ -97,21 +95,23 @@ namespace Plugins.C_.models
         public int gender;
         public List<BodyStruct> elements;
 
-        public BodyStructWrapper(int gender = -1, IEnumerable values = null)
+        public BodyStructWrapper() { }
+
+        // 有参构造方法：自动把不同元素转换为BodyStruct对象
+        public BodyStructWrapper(int gender, IEnumerable elements)
         {
             this.gender = gender;
+            this.elements = new List<BodyStruct>();
 
-            elements = new List<BodyStruct>();
-            if (values == null) return;
-
-            foreach (var value in values)
+            foreach (var e in elements)
             {
-                elements.Add(
-                    value switch
+                this.elements.Add(
+                    e switch
                     {
-                        int vi => new BodyStruct(vi),
-                        string vs => new BodyStruct(vs),
-                        BodyStruct vb => vb,
+                        int num => new BodyStruct(num),
+                        string str => new BodyStruct(str),
+                        BodyStruct obj => obj,
+                        Info tab => new BodyStruct(tab.Value, tab.Name),
                         _ => throw new NotSupportedException()
                     }
                 );
@@ -130,14 +130,6 @@ namespace Plugins.C_.models
         {
             var jsonContent = JsonUtility.ToJson(this, true);
             File.WriteAllText(path, jsonContent);
-        }
-
-        public void ItemsRefresh()
-        {
-            for (var i = 0; i < elements.Count; i++)
-            {
-                elements[i] = new BodyStruct(elements[i].name, elements[i].value);
-            }
         }
 
         public int[] ValuesAsInt()

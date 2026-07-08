@@ -37,8 +37,8 @@ namespace Editor.Atlas
         {
             if (AtlasFactory.Load(_atlasName, out var atlas))
             {
-                PrefabEditor.DecodeModelActive(new BodyStructWrapper(atlas.gender, atlas.modelDisplayed));
-                PrefabEditor.DecodeModelTranslucent(new BodyStructWrapper(atlas.gender, atlas.modelTranslucent));
+                PrefabCollection.DecodeModelActive(new BodyStructWrapper(atlas.gender, atlas.modelDisplayed));
+                PrefabCollection.DecodeModelTranslucent(new BodyStructWrapper(atlas.gender, atlas.modelTranslucent));
 
                 CookieWrapper.Create(_atlasName);
                 Debug.Log($"加载 {_atlasName} 成功");

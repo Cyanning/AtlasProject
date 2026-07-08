@@ -21,7 +21,7 @@ namespace Editor
         {
             _bone = new Bone();
             // 获取当前显示的模型数据
-            var bodysForActive = PrefabEditor.EncodetModelActive();
+            var bodysForActive = PrefabCollection.EncodetModelActive();
             _bone.gender = bodysForActive.gender;
             _bone.family = bodysForActive.ValuesAsStr();
 

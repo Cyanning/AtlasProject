@@ -1,154 +1,62 @@
-﻿using System;
-using System.Linq;
-using System.Collections.Generic;
+using System;
+using UnityEditor;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using Plugins.C_;
 using Plugins.C_.models;
 
 namespace Editor
 {
-    public static class PrefabEditor
+    public class PrefabEditor : MonoBehaviour
     {
-        private static readonly string[] ModelNames =
+        [MenuItem("自定义功能/数据库Test")]
+        public static void CheckPrefabNames()
         {
-            "BodyMale", "BodyFemale", "ForamensMale", "ForamensFemale"
-        };
-
-        private static IEnumerable<Transform> ForEachChildren(Transform root)
-        {
-            if (root is null)
+            var bodyMale = GameObject.Find("BodyMale");
+            foreach (var prefab in PrefabCollection.ForEachChildren(bodyMale.transform))
             {
-                yield break;
-            }
-
-            var stack = new Stack<Transform>();
-            stack.Push(root);
-            while (stack.Count > 0)
-            {
-                var node = stack.Pop();
-                var i = node.childCount - 1;
-
-                while (i >= 0)
+                // 预制体名字是否正常
+                if (BodyStruct.GetFromPrefab(prefab.name, out var body))
                 {
-                    stack.Push(node.GetChild(i));
-                    i--;
-                }
-
-                yield return node;
-            }
-        }
-
-        public static BodyStructWrapper EncodetModelActive()
-        {
-            // 建立数据缓存变量，避免value重复使用HashSet
-            var gender = -1;
-            var values = new HashSet<BodyStruct>();
-
-            // 引用显示中的模型
-            var i = 0;
-            while (i < 4)
-            {
-                var go = GameObject.Find(ModelNames[i]);
-                if (go is null)
-                {
-                    if (i < 2)
+                    // 是否能找到对应数据
+                    if (AnatomyDatabase.FindBodyFromValue(body.value, out var info))
                     {
-                        i += 1;
-                        continue;
+                        Debug.Log($"{info.Value}, {info.Name} 【✓】");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"库中找不到数据：{prefab.name}");
                     }
 
-                    break;
-                }
-
-                // 设置性别
-                gender = i % 2;
-
-                // 获取所有显示的模型 value
-                foreach (var childTf in ForEachChildren(go.transform))
-                {
-                    if (
-                        childTf.childCount == 0 &&
-                        childTf.gameObject.activeInHierarchy &&
-                        BodyStruct.TryInstance(childTf.name, out var body)
-                    )
+                    // 检查网格名字是否匹配
+                    if (prefab.childCount == 0)
                     {
-                        values.Add(body);
+                        try
+                        {
+                            var meshName = "";
+
+                            if (prefab.TryGetComponent(out MeshFilter mesh))
+                            {
+                                meshName = mesh.sharedMesh.name.Trim();
+                            }
+                            else if (prefab.TryGetComponent(out SkinnedMeshRenderer skMesh))
+                            {
+                                meshName = skMesh.sharedMesh.name.Trim();
+                            }
+
+                            if (meshName != body.value.ToString())
+                            {
+                                Debug.LogWarning($"网格名称不对应：{prefab.name} ≠ {meshName}");
+                            }
+                        }
+                        catch (NullReferenceException)
+                        {
+                            Debug.LogError($"网格为空：{prefab.name}");
+                        }
                     }
                 }
-
-                i += 2;
-            }
-
-            return new BodyStructWrapper(gender, values);
-        }
-
-        public static BodyStructWrapper EncodetModelTranslucent(int gender)
-        {
-            // 建立数据缓存变量，避免value重复使用HashSet
-            var values = new HashSet<BodyStruct>();
-
-            // 引用显示中的模型
-            var go = GameObject.Find(ModelNames[gender]);
-            if (go is null) return null;
-
-            // 获取所有显示的模型 value
-            foreach (var childTf in ForEachChildren(go.transform))
-            {
-                if (
-                    childTf.childCount == 0 &&
-                    childTf.TryGetComponent<ModelTranslucent>(out var translucent) &&
-                    translucent.isTranslucnet
-                )
+                else if (!prefab.name.Contains("Point"))
                 {
-                    var body = new BodyStruct(childTf.name);
-                    values.Add(body);
-                }
-            }
-
-            return new BodyStructWrapper(gender, values);
-        }
-
-        public static void DecodeModelActive(BodyStructWrapper bodys)
-        {
-            // 数据处理类的实例
-            var setter = new PrefabSetActive(bodys.ValuesAsInt().ToHashSet());
-
-            // 通过场景查找隐藏的模型对象
-            foreach (var rootObj in SceneManager.GetActiveScene().GetRootGameObjects())
-            {
-                var index = Array.IndexOf(ModelNames, rootObj.name);
-                if (index < 0) continue;
-
-                if (index % 2 == bodys.gender)
-                {
-                    setter.Setting(rootObj);
-                }
-                else
-                {
-                    rootObj.SetActive(false);
-                }
-            }
-        }
-
-        public static void DecodeModelTranslucent(BodyStructWrapper bodys)
-        {
-            // 数据处理类的实例
-            var modelSetter = new PrefabSetTranslucent(bodys.ValuesAsInt().ToHashSet());
-
-            // 通过场景查找隐藏的模型对象
-            foreach (var rootObj in SceneManager.GetActiveScene().GetRootGameObjects())
-            {
-                var index = Array.IndexOf(ModelNames, rootObj.name);
-                if (index < 0) continue;
-
-                if (index % 2 == bodys.gender)
-                {
-                    modelSetter.Setting(rootObj);
-                }
-                else
-                {
-                    rootObj.SetActive(false);
+                    Debug.LogWarning($"预制体名称有问题：{prefab.name}");
                 }
             }
         }

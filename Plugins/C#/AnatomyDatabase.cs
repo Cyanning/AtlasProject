@@ -1,18 +1,25 @@
-using System.Collections.Generic;
-using System.Data;
 using SQLite;
-using Plugins.C_.models;
+using Plugins.C_.models.orm;
 
 namespace Plugins.C_
 {
-    public class AnatomyDatabase
+    public static class AnatomyDatabase
     {
-        public BodyStruct FindBodyFromValue(int value)
+        public static bool FindBodyFromValue(int value, out Info body)
         {
-            using (var db = new SQLiteConnection("URI=file:D:/AnatomyLibrary/AnatomyBeta.db"))
+            using var db = new SQLiteConnection("D:/AnatomyLibrary/AnatomyBeta.db");
+
+            var sql = $"SELECT value, name FROM info WHERE value={value}";
+            var bodys = db.Query<Info>(sql);
+
+            if (bodys.Count != 1)
             {
-                List<BodyStruct> bodys = db.Query<BodyStruct>();
+                body = null;
+                return false;
             }
+
+            body = bodys[0];
+            return true;
         }
     }
 }

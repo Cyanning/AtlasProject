@@ -5,7 +5,7 @@ using Plugins.C_.models;
 
 namespace Editor
 {
-    public abstract class PrefabSetter
+    public abstract class TreeAttributionSetter
     {
         // 需要操作的模型id
         private readonly HashSet<int> _checkList;
@@ -17,7 +17,7 @@ namespace Editor
         protected abstract bool LogicalCalculus(bool parentFlag, bool childFlag);
 
         // 构造函数，该类必须传递需要操作的模型id列表
-        protected PrefabSetter(HashSet<int> checkList)
+        protected TreeAttributionSetter(HashSet<int> checkList)
         {
             _checkList = checkList ?? new HashSet<int>();
         }
@@ -40,7 +40,7 @@ namespace Editor
                     flag = LogicalCalculus(flag, childFlag);
                 }
             }
-            else if (BodyStruct.TryInstance(nodeTf.name, out var body))
+            else if (BodyStruct.GetFromPrefab(nodeTf.name, out var body))
             {
                 flag = _checkList.Contains(body.value);
             }
@@ -52,11 +52,11 @@ namespace Editor
 
 
     // 设置模型显示状态: activeInHierarchy 属性
-    public sealed class PrefabSetActive : PrefabSetter
+    public sealed class TreeSetActive : TreeAttributionSetter
     {
         protected override bool InitialValue => false;
 
-        public PrefabSetActive(HashSet<int> checkList) : base(checkList) { }
+        public TreeSetActive(HashSet<int> checkList) : base(checkList) { }
 
         protected override bool LogicalCalculus(bool parentFlag, bool childFlag)
         {
@@ -73,11 +73,11 @@ namespace Editor
     }
 
     // 设置模型透明状态: ModelTranslucent 属性
-    public sealed class PrefabSetTranslucent : PrefabSetter
+    public sealed class TreeSetTranslucent : TreeAttributionSetter
     {
         protected override bool InitialValue => true;
 
-        public PrefabSetTranslucent(HashSet<int> checkList) : base(checkList) { }
+        public TreeSetTranslucent(HashSet<int> checkList) : base(checkList) { }
 
         protected override bool LogicalCalculus(bool parentFlag, bool childFlag)
         {

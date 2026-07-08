@@ -106,12 +106,12 @@ namespace Editor.Atlas
             }
 
             // 获取当前显示的模型数据
-            var bodysForActive = PrefabEditor.EncodetModelActive();
+            var bodysForActive = PrefabCollection.EncodetModelActive();
             atlas.gender = bodysForActive.gender;
             atlas.modelDisplayed = bodysForActive.ValuesAsStr();
 
             // 获取当前透明的模型数据
-            var bodysForTranslucent = PrefabEditor.EncodetModelTranslucent(atlas.gender);
+            var bodysForTranslucent = PrefabCollection.EncodetModelTranslucent(atlas.gender);
             atlas.modelTranslucent = bodysForTranslucent.ValuesAsStr();
 
             // 获取骨性标志的类型和预分类

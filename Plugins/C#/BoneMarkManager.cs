@@ -182,7 +182,7 @@ namespace Plugins.C_
             bonemark = null;
 
             // 检测预制体是否合法
-            if (!BodyStruct.TryInstance(chickedModel.name, out var body))
+            if (!BodyStruct.GetFromPrefab(chickedModel.name, out var body))
                 return false;
 
             // 判断是否是孔洞虚拟模型
