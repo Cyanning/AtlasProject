@@ -1,6 +1,6 @@
 using UnityEditor;
 using UnityEngine;
-using Plugins.C_.models;
+using Plugins.models;
 
 
 namespace Editor
