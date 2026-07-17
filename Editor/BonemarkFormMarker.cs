@@ -12,7 +12,7 @@ namespace Editor
         private Bone _bone;
 
         //MenuItem会在unity菜单栏添加自定义新项
-        [MenuItem("自定义功能/骨骼-创建单独视图")]
+        [MenuItem("Customer/骨骼-创建单独视图")]
         public static void ShowWindow()
         {
             GetWindow<BonemarkFormMarker>("创建骨骼单独视图");

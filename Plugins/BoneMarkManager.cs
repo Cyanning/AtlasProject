@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using Plugins.models;
+using UnityEditor;
 
 
 namespace Plugins
@@ -10,6 +11,7 @@ namespace Plugins
     public class BoneMarkManager : MonoBehaviour
     {
         public int markType;
+        private const int TypeSum = 4;
 
         private ClickEvent _clickEvent;
 
@@ -46,7 +48,7 @@ namespace Plugins
 
         public void SettingBonemarkMode()
         {
-            if (markType < 3)
+            if (markType < TypeSum)
             {
                 markType++;
 
@@ -86,7 +88,7 @@ namespace Plugins
                 var markName = GetMarkName(material);
                 if (!_textures.ContainsKey(markName)) GetSeriesMapsforMaterial(markName);
 
-                material.shader = Shader.Find("ame3");
+                material.shader.name = "ame3";
                 material.SetColor(ShaderIDBgcolor, Color.white);
                 material.SetInt(ShaderIDTranslucent, 1);
                 material.SetTexture(ShaderIDTexInvisible, _textures[markName].invisible[markType]);
@@ -101,7 +103,7 @@ namespace Plugins
                 var markName = GetMarkName(material);
                 if (!_textures.ContainsKey(markName)) GetSeriesMapsforMaterial(markName);
 
-                material.shader = Shader.Find("ameop");
+                material.shader.name = "ameop";
                 material.SetTexture(ShaderIDTexDisplayed, _textures[markName].essence);
             }
         }
@@ -115,30 +117,22 @@ namespace Plugins
         {
             _textures.Add(markName, new BoneMaps());
 
-            var mapPath = Path.Combine(Application.dataPath, $"model/Maps/Guge/{markName}.jpg");
-            if (File.Exists(mapPath))
+            var mapBasic= AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/model/Maps/Guge/{markName}.jpg");
+            if (mapBasic == null) return;
+            _textures[markName].essence = mapBasic;
+
+            for (var i = 1; i <= TypeSum; i++)
             {
-                var texE = new Texture2D(1, 1);
-                texE.LoadImage(File.ReadAllBytes(mapPath));
-                _textures[markName].essence = texE;
-            }
+                var mapInvisible = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                    $"Assets/model/Maps/bone_mark_maps/{markName}_mark{i}.png"
+                );
+                var mapDisplayed = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                    $"Assets/model/Maps/bone_mark_maps/{markName}_mark{i}_cover.png"
+                );
 
-            for (var i = 1; i < 5; i++)
-            {
-                var mapInvisiblePath = Path.Combine(
-                    Application.dataPath, $"model/Maps/bone_mark_maps/{markName}_mark{i}.png");
-                var mapDisplayedPath = Path.Combine(
-                    Application.dataPath, $"model/Maps/bone_mark_maps/{markName}_mark{i}_cover.png");
-
-                if (!File.Exists(mapInvisiblePath) || !File.Exists(mapDisplayedPath)) continue;
-
-                var texI = new Texture2D(1, 1);
-                texI.LoadImage(File.ReadAllBytes(mapInvisiblePath));
-                _textures[markName].invisible[i] = texI;
-
-                var texD = new Texture2D(1, 1);
-                texD.LoadImage(File.ReadAllBytes(mapDisplayedPath));
-                _textures[markName].displayed[i] = texD;
+                if (mapInvisible == null || mapDisplayed == null) continue;
+                _textures[markName].invisible[i] = mapInvisible;
+                _textures[markName].displayed[i] = mapDisplayed;
             }
         }
 

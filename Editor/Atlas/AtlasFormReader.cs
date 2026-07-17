@@ -9,7 +9,7 @@ namespace Editor.Atlas
     {
         private string _atlasName;
 
-        [MenuItem("自定义功能/图谱-读取模型")]
+        [MenuItem("Customer/图谱-读取模型")]
         public static void ShowWindow()
         {
             GetWindow<AtlasFormReader>("读取图谱");

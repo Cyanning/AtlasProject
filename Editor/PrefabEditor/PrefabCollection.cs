@@ -28,29 +28,28 @@ namespace Editor.PrefabEditor
             }
 
             var stack = new Stack<Transform>();
-            for (var i = 0; i < root.childCount; i++)
+            for (var i = root.childCount - 1; i >= 0 ; i--)
             {
                 stack.Push(root.GetChild(i));
             }
 
             while (stack.Count > 0)
             {
-                var node = stack.Pop();
-                if (Excepted.Contains(node.name))
+                var tf = stack.Pop();
+                if (Excepted.Contains(tf.name))
                 {
                     continue;
                 }
 
-                var i = node.childCount - 1;
-                if (!leafOnly || i == -1)
+                var childCount = tf.childCount;
+                if (!leafOnly || childCount == 0)
                 {
-                    yield return node;
+                    yield return tf;
                 }
 
-                while (i >= 0)
+                for (var i = childCount - 1; i >= 0; i--)
                 {
-                    stack.Push(node.GetChild(i));
-                    i--;
+                    stack.Push(tf.GetChild(i));
                 }
             }
         }
