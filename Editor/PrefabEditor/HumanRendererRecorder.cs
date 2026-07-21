@@ -1,30 +1,30 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using JetBrains.Annotations;
-using Plugins.models;
 using UnityEngine;
+using UnityEditor;
+using Plugins.models;
 
 
 namespace Editor.PrefabEditor
 {
     [Serializable]
-    public class MaterrialWrapper
+    public class MaterialWrapper
     {
         public string name;
-        [CanBeNull] public Texture albe;
-        [CanBeNull] public Texture normal;
+        public string albe;
+        public string normal;
     }
 
     [Serializable]
     public class RendererWrapper
     {
         public int value;
-        public List<MaterrialWrapper> materials;
+        public List<MaterialWrapper> materials;
     }
 
     [Serializable]
-    public class AllRenderers
+    public class BodyRenderersWrapper
     {
         public List<RendererWrapper> renderers = new();
     }
@@ -36,43 +36,64 @@ namespace Editor.PrefabEditor
     {
         private static readonly int ShaderIDTextureSurface = Shader.PropertyToID("_albe");
         private static readonly int ShaderIDTextureNormal = Shader.PropertyToID("_normal");
-        private AllRenderers AllRenderers { get; } = new();
+        private readonly BodyRenderersWrapper _renderers = new ();
 
         /// <summary>
-        /// 构建 RendererWrapper 并追加到缓存。
+        /// 构建 MaterrialWrapper 并追加到缓存。
         /// </summary>
         public void Record(GameObject target)
         {
             if (target == null) throw new ArgumentNullException(nameof(target));
 
-            if (!target.TryGetComponent(out Renderer renderer)) return;
-
-            if (!BodyStruct.GetFromPrefab(target.name, out var body)) return;
-
-            var wrapper = new RendererWrapper
+            if (!BodyStruct.GetFromPrefab(target.name, out var body))
             {
-                value = body.value,
-                materials = new List<MaterrialWrapper>()
-            };
-
-            foreach (var material in renderer.sharedMaterials)
-            {
-                if (material == null) continue;
-                wrapper.materials.Add(
-                    new MaterrialWrapper
-                    {
-                        name = material.name,
-                        albe = material.HasProperty(ShaderIDTextureSurface)
-                            ? material.GetTexture(ShaderIDTextureSurface)
-                            : null,
-                        normal = material.HasProperty(ShaderIDTextureNormal)
-                            ? material.GetTexture(ShaderIDTextureNormal)
-                            : null
-                    }
-                );
+                Debug.LogWarning($"模型名称有问题：{target.name}");
+                return;
             }
 
-            AllRenderers.renderers.Add(wrapper);
+            if (!target.TryGetComponent(out Renderer renderer))
+            {
+                Debug.LogWarning($"无Renderer挂载：{target.name}");
+                return;
+            }
+
+            var wrapper = new RendererWrapper()
+            {
+                value = body.value,
+                materials = new List<MaterialWrapper>()
+            };
+
+            var sharedMaterials = renderer.sharedMaterials;
+            if (sharedMaterials.Length == 0)
+            {
+                Debug.LogWarning($"无材质球：{target.name}");
+                return;
+            }
+
+            foreach (var material in sharedMaterials)
+            {
+                var tex = new MaterialWrapper
+                {
+                    name = material.name,
+                    albe = GetTextureAssetName(material, ShaderIDTextureSurface),
+                    normal = GetTextureAssetName(material, ShaderIDTextureNormal)
+                };
+                if (string.IsNullOrEmpty(tex.albe) && string.IsNullOrEmpty(tex.normal))
+                {
+                    Debug.LogWarning($"无贴图：{target.name}");
+                }
+
+                wrapper.materials.Add(tex);
+            }
+
+            _renderers.renderers.Add(wrapper);
+        }
+
+        private static string GetTextureAssetName(Material material, int textureID)
+        {
+            return material.HasProperty(textureID)
+                ? Path.GetFileName(AssetDatabase.GetAssetPath(material.GetTexture(textureID)))
+                : "";
         }
 
         /// <summary>
@@ -80,16 +101,15 @@ namespace Editor.PrefabEditor
         /// </summary>
         public void SaveJson(string filePath)
         {
-            File.WriteAllText(filePath, JsonUtility.ToJson(AllRenderers, true));
-            AllRenderers.renderers.Clear();
+            File.WriteAllText(filePath, JsonUtility.ToJson(_renderers, true));
         }
 
         /// <summary>
-        /// 读取 JSON 并反序列化为 AllRenderers 对象。
+        /// 读取 JSON 并反序列化为 RendererWrapper 对象。
         /// </summary>
-        public AllRenderers LoadJson(string filePath)
+        public static BodyRenderersWrapper LoadJson(string filePath)
         {
-            return JsonUtility.FromJson<AllRenderers>(File.ReadAllText(filePath));
+            return JsonUtility.FromJson<BodyRenderersWrapper>(File.ReadAllText(filePath));
         }
     }
 }

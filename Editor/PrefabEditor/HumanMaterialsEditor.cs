@@ -2,24 +2,22 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Plugins.models;
 using UnityEditor;
 using UnityEngine;
 
 namespace Editor.PrefabEditor
 {
     /// <summary>
-    /// 替换指定目标模型使用的共享材质。
-    /// 新材质中配置的贴图会随材质一起应用到模型上。
+    /// 根据 Renderer 记录文件，为指定模型替换对应的 Nv 材质。
     /// </summary>
     public sealed class HumanMaterialsEditor
     {
-        private readonly Dictionary<string, Texture> _textureCache = new();
-        private readonly Dictionary<string, Material> _materialCache = new();
+        private const string NewMaterialPrefix = "Nv";
+        private const string RendererRecordsDirectory = @"D:\AnatomyLibrary\unity_editor";
+        private const string MaterialAssetsDirectory = "Assets/model/Materials";
 
-        private static readonly int ShaderIDTextureSurface = Shader.PropertyToID("_albe");
-        private static readonly int ShaderIDTextureNormal = Shader.PropertyToID("_normal");
-
-        private static readonly Dictionary<string, string> MapPathes = new()
+        private static readonly Dictionary<string, string> TextureAssetsDirectory = new()
         {
             { "Guge", "Assets/model/NvMaps/Guge" },
             { "Jiedi", "Assets/model/NvMaps/Jiedi" },
@@ -27,199 +25,229 @@ namespace Editor.PrefabEditor
             { "Miniao", "Assets/model/NvMaps/Miniao" }
         };
 
+        private static readonly int ShaderIDTextureSurface = Shader.PropertyToID("_albe");
+        private static readonly int ShaderIDTextureNormal = Shader.PropertyToID("_normal");
+
+        private RendererWrapper[] _currentSystemRecords;
+        private readonly Dictionary<string, Material> _materialCache = new(StringComparer.Ordinal);
+
         /// <summary>
-        /// 替换目标对象及其所有子节点（包括未激活节点）上的材质。
-        /// 材质生成函数返回 null 时，保留对应的旧材质。
+        /// 遍历目标对象下的所有叶子节点，并替换各叶子节点的材质。
         /// </summary>
-        /// <param name="target">本次需要替换材质的对象。</param>
-        public void ReplaceMaterials(GameObject target)
+        /// <returns>成功替换材质的叶子节点数量。</returns>
+        public int ReplaceMaterials(GameObject target)
         {
-            if (target == null || !target.TryGetComponent(out Renderer render))
+            if (target == null)
             {
                 throw new ArgumentNullException(nameof(target));
             }
 
-            var oldMaterials = render.sharedMaterials;
-            if (oldMaterials.Length == 0)
+            if (!BodyStruct.GetFromPrefab(target.name, out var currentRootStruct))
             {
-                Debug.LogWarning($"无材质球：{target.name}");
+                Debug.LogError($"根模型不符合标准 {target.name}");
+                return 0;
             }
 
-            var newMaterials = new List<Material>();
-            foreach (var oldMaterial in oldMaterials)
+            if (!TryLoadSystemRecords(currentRootStruct))
             {
-                if (oldMaterial == null) continue;
+                Debug.LogError($"找不到记录的材质数据 {target.name}");
+                return 0;
+            }
 
-                if (AssetPathFactory($"{oldMaterial.name}.mat", out var newMaterialPath))
+            var replacedCount = 0;
+            foreach (var leaf in PrefabCollection.ForEachChildren(target.transform, leafOnly: true))
+            {
+                if (ReplaceLeafMaterials(leaf.gameObject))
                 {
-                    Material newMaterial;
-                    Debug.Log($"获取到的地址：{newMaterialPath}");
-                    if (!string.IsNullOrEmpty(newMaterialPath))
-                    {
-                        newMaterial = AssetDatabase.LoadAssetAtPath<Material>(newMaterialPath);
-                        if (newMaterial == null)
-                        {
-                            throw new FileNotFoundException(newMaterialPath);
-                        }
-
-                        var fileName = Path.GetFileNameWithoutExtension(newMaterialPath);
-                        if (!string.IsNullOrEmpty(fileName) && fileName != newMaterial.name)
-                        {
-                            Debug.Log($"给材质球改名：{newMaterial.name} ==> {fileName}");
-                            newMaterial.name = fileName;
-                            AssetDatabase.RenameAsset(newMaterialPath, fileName);
-                        }
-                    }
-                    else
-                    {
-                        newMaterial = oldMaterial;
-                    }
-
-                    ReplaceTexture(oldMaterial, newMaterial, ShaderIDTextureSurface);
-                    ReplaceTexture(oldMaterial, newMaterial, ShaderIDTextureNormal);
-
-                    Debug.Log($"给 {target.name} 添加材质球 {newMaterial.name}");
-
-                    newMaterials.Add(newMaterial);
-                }
-                else
-                {
-                    newMaterials.Add(oldMaterial);
+                    replacedCount++;
                 }
             }
 
-            // if (newMaterials.Count > 0)
-            // {
-            //     render.SetSharedMaterials(newMaterials);
-            // }
-        }
-
-        private void ReplaceTexture(Material oldMaterial, Material newMaterial, int shaderID)
-        {
-            var oldTexture = oldMaterial.GetTexture(shaderID);
-            var oldTexturePath = oldTexture == null
-                ? oldMaterial.name
-                : Path.GetFileName(AssetDatabase.GetAssetPath(oldTexture));
-
-            if (AssetPathFactory(oldTexturePath, out var newTexturePath))
-            {
-                if (!string.IsNullOrEmpty(newTexturePath))
-                {
-                    var newTextureName = Path.GetFileNameWithoutExtension(newTexturePath);
-                    if (!_textureCache.TryGetValue(newTextureName, out var newTexture))
-                    {
-                        newTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(newTexturePath);
-                        _textureCache.Add(newTextureName, newTexture);
-                    }
-
-                    if (newTexture != null)
-                    {
-                        Debug.Log($"给 {newMaterial.name} 贴上 {newTexturePath}");
-                        // newMaterial.SetTexture(shaderID, newTexture);
-                    }
-                }
-            }
+            return replacedCount;
         }
 
         /// <summary>
-        /// 检查材质和贴图名称不一致的问题
+        /// 查找单个叶子节点的原材质记录，并应用对应的 Nv 材质。
         /// </summary>
-        /// <param name="target">本次需要检查材质的对象。</param>
-        public static void CheckingMaterials(GameObject target)
+        private bool ReplaceLeafMaterials(GameObject target)
         {
-            if (target == null || !target.TryGetComponent(out Renderer render))
+            if (!BodyStruct.GetFromPrefab(target.name, out var body))
             {
-                throw new ArgumentNullException(nameof(target));
+                Debug.LogWarning($"无法从模型名称解析 value：{target.name}");
+                return false;
             }
 
-            var oldMaterials = render.sharedMaterials;
-            if (oldMaterials.Length == 0)
+            if (!target.TryGetComponent(out Renderer renderer))
             {
-                Debug.LogWarning($"无材质球：{target.name}");
+                Debug.LogWarning($"模型未挂载 Renderer：{target.name}");
+                return false;
             }
 
-            foreach (var oldMaterial in oldMaterials)
+            var rendererRecord = GetRendererRecord(body.value);
+            if (rendererRecord == null)
             {
-                if (oldMaterial.HasProperty(ShaderIDTextureSurface))
-                {
-                    var texSurface = oldMaterial.GetTexture(ShaderIDTextureSurface);
-                    if (texSurface != null && texSurface.name != oldMaterial.name)
-                    {
-                        Debug.LogWarning($"{target.name} => Mat: {oldMaterial.name}; TexSurface: {texSurface.name}");
-                    }
-                }
-
-                if (oldMaterial.HasProperty(ShaderIDTextureNormal))
-                {
-                    var texNormal = oldMaterial.GetTexture(ShaderIDTextureNormal);
-                    if (texNormal != null && texNormal.name != $"{oldMaterial.name}_N")
-                    {
-                        Debug.LogWarning($"{target.name} => Mat: {oldMaterial.name}; TexNormal: {texNormal.name}");
-                    }
-                }
+                Debug.LogWarning($"没有找到模型的材质记录：{target.name}，value：{body.value}");
+                return false;
             }
+
+            // 添加根据记录找材质球，数量对不上不替换
+            var newMaterials = GetMaterials(rendererRecord);
+            if (newMaterials.Length != renderer.sharedMaterials.Length)
+            {
+                return false;
+            }
+
+            renderer.sharedMaterials = newMaterials;
+            return true;
         }
 
-        private bool AssetPathFactory(string filePath, out string newFilePath)
+        /// <summary>
+        /// 读取材质记录文档
+        /// </summary>
+        private bool TryLoadSystemRecords(BodyStruct rootStruct)
         {
-            var fileName = Path.GetFileNameWithoutExtension(filePath);
-            var suffix = Path.GetExtension(filePath);
-            newFilePath = "";
-
-            if (fileName.StartsWith("Nv"))
+            if (!Directory.Exists(RendererRecordsDirectory))
             {
-                return true;
+                throw new DirectoryNotFoundException(RendererRecordsDirectory);
             }
 
-            switch (suffix.ToLower())
+            var recordFilePath = Directory.EnumerateFiles(
+                RendererRecordsDirectory,
+                $"*~{rootStruct.value}.json",
+                SearchOption.TopDirectoryOnly).FirstOrDefault();
+
+            if (string.IsNullOrEmpty(recordFilePath))
             {
-                case ".mat":
-                    newFilePath = $"Assets/model/Materials/Nv{fileName}{suffix}";
-                    break;
-
-                case ".jpg" or ".png":
-                    foreach (var key in MapPathes.Keys)
-                    {
-                        if (fileName.Contains(key))
-                        {
-                            newFilePath = $"Assets/model/NvMaps/Guge/Nv{fileName}{suffix}";
-                        }
-                    }
-
-                    break;
-
-                default:
-                    Debug.LogWarning($"{fileName} 缺少旧数据，进入全文件查找");
-                    newFilePath = AssetDatabase
-                        .FindAssets($"t:Texture2D {fileName}", new[] { "Assets/model/NvMaps" })
-                        .Select(AssetDatabase.GUIDToAssetPath)
-                        .FirstOrDefault(path => Path.GetFileNameWithoutExtension(path) == $"Nv{fileName}");
-                    break;
+                return false;
             }
 
-            return !string.IsNullOrEmpty(newFilePath);
+            var recordsWrapper = HumanRendererRecorder.LoadJson(recordFilePath);
+            if (recordsWrapper?.renderers == null || recordsWrapper.renderers.Count == 0)
+            {
+                throw new InvalidDataException($"Renderer 记录文件格式错误：{recordFilePath}");
+            }
+
+            _currentSystemRecords = recordsWrapper.renderers.ToArray();
+            return true;
         }
 
-        private static string FindAllFiles(string fileName)
+        /// <summary>
+        /// 从缓存加载材质
+        /// </summary>
+        private RendererWrapper GetRendererRecord(int bodyValue)
         {
-            var allFile = AssetDatabase.FindAssets(
-                $"t:Texture2D {fileName}", MapPathes.Values.ToArray()
-            );
+            var result =
+                from record in _currentSystemRecords
+                where record != null && record.value == bodyValue
+                select record;
 
-            Debug.Log($"查找遍历{fileName} 匹配到：{allFile.Length}");
-            foreach (var file in allFile)
+            return result.FirstOrDefault();
+        }
+
+        /// <summary>
+        /// 获取新材质，优先从材质球缓存加载
+        /// <param name="rendererRecord">材质球数据，依据传入的数据转换为新数据</param>
+        /// </summary>
+        private Material[] GetMaterials(RendererWrapper rendererRecord)
+        {
+            var materials = new Material[rendererRecord.materials.Count];
+            for (var i = 0; i < rendererRecord.materials.Count; i++)
             {
-                var path = AssetDatabase.GUIDToAssetPath(file);
-                var name = Path.GetFileNameWithoutExtension(path);
-                var result = name == $"Nv{fileName}";
-                Debug.Log($"查找遍历Name：{name}, 结果：{result}");
-                if (result)
+                var materialRecord = rendererRecord.materials[i];
+                if (materialRecord == null || string.IsNullOrWhiteSpace(materialRecord.name))
                 {
-                    return path;
+                    Debug.LogWarning($"value 为 {rendererRecord.value} 的第 {i} 个材质记录无效。");
+                    continue;
                 }
+
+                var newMaterialRecord = MarkNewMaterialWrapper(materialRecord);
+
+                if (_materialCache.TryGetValue(newMaterialRecord.name, out materials[i])) continue;
+
+                if (MarkMaterial(newMaterialRecord, out materials[i])) continue;
+
+                materials[i] = null;
             }
 
-            return "";
+            return materials;
+        }
+
+        /// <summary>
+        /// 把老名字换成新名字
+        /// </summary>
+        private static MaterialWrapper MarkNewMaterialWrapper(MaterialWrapper oldMaterial)
+        {
+            return new MaterialWrapper
+            {
+                name = GetNewName(oldMaterial.name),
+                albe = GetNewName(oldMaterial.albe),
+                normal = GetNewName(oldMaterial.normal)
+            };
+        }
+
+        private static string GetNewName(string oldName)
+        {
+            if (string.IsNullOrWhiteSpace(oldName))
+            {
+                return "";
+            }
+
+            return oldName.StartsWith(NewMaterialPrefix, StringComparison.Ordinal)
+                ? oldName
+                : $"{NewMaterialPrefix}{oldName}";
+        }
+
+        /// <summary>
+        /// 制作材质球
+        /// </summary>
+        private bool MarkMaterial(MaterialWrapper materialWrapper, out Material newMaterial)
+        {
+            var newMaterialPath = Path.Combine(MaterialAssetsDirectory, $"{materialWrapper.name}.mat");
+            newMaterial = AssetDatabase.LoadAssetAtPath<Material>(newMaterialPath);
+
+            if (newMaterial == null)
+            {
+                return false;
+            }
+
+            if (materialWrapper.name != newMaterial.name)
+            {
+                Debug.Log($"给材质球改名：{newMaterial.name} ==> {materialWrapper.name}");
+                newMaterial.name = materialWrapper.name;
+                AssetDatabase.RenameAsset(newMaterialPath, materialWrapper.name);
+            }
+
+            SetTexture(newMaterial, materialWrapper.albe, ShaderIDTextureSurface);
+            SetTexture(newMaterial, materialWrapper.normal, ShaderIDTextureNormal);
+
+            _materialCache[newMaterial.name] = newMaterial;
+
+            return true;
+        }
+
+        /// <summary>
+        /// 给材质球贴图
+        /// </summary>
+        private static void SetTexture(Material material, string imgName, int shaderID)
+        {
+            if (!material.HasProperty(shaderID) || string.IsNullOrWhiteSpace(imgName))
+            {
+                return;
+            }
+
+            foreach (var textureAsset in TextureAssetsDirectory)
+            {
+                if (imgName.Contains(textureAsset.Key))
+                {
+                    var newTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                        Path.Combine(textureAsset.Value, imgName)
+                    );
+                    if (newTexture == null) continue;
+
+                    material.SetTexture(shaderID, newTexture);
+                    return;
+                }
+            }
         }
     }
 }

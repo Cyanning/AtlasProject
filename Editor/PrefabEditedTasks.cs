@@ -1,4 +1,3 @@
-using System.IO;
 using UnityEditor;
 using UnityEngine;
 using Editor.PrefabEditor;
@@ -43,10 +42,8 @@ namespace Editor
                 var brench = root.GetChild(i);
                 if (!targets.Contains(brench.name)) continue;
 
-                foreach (var node in PrefabCollection.ForEachChildren(brench, true))
-                {
-                    materialEditor.ReplaceMaterials(node.gameObject);
-                }
+                var num = materialEditor.ReplaceMaterials(brench.gameObject);
+                Debug.Log($"{brench.name} 已修改 {num} 个模型的材质");
             }
         }
 
