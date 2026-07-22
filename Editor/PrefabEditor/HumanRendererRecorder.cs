@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using Plugins.models;
@@ -36,7 +37,7 @@ namespace Editor.PrefabEditor
     {
         private static readonly int ShaderIDTextureSurface = Shader.PropertyToID("_albe");
         private static readonly int ShaderIDTextureNormal = Shader.PropertyToID("_normal");
-        private readonly BodyRenderersWrapper _renderers = new ();
+        private BodyRenderersWrapper _renderers = new ();
 
         /// <summary>
         /// 构建 MaterrialWrapper 并追加到缓存。
@@ -107,9 +108,20 @@ namespace Editor.PrefabEditor
         /// <summary>
         /// 读取 JSON 并反序列化为 RendererWrapper 对象。
         /// </summary>
-        public static BodyRenderersWrapper LoadJson(string filePath)
+        public bool LoadJson(string filePath)
         {
-            return JsonUtility.FromJson<BodyRenderersWrapper>(File.ReadAllText(filePath));
+            _renderers = JsonUtility.FromJson<BodyRenderersWrapper>(File.ReadAllText(filePath));
+            return _renderers.renderers.Count > 0;
+        }
+
+        public RendererWrapper GetRendererRecord(int bodyValue)
+        {
+            var result =
+                from record in _renderers.renderers
+                where record != null && record.value == bodyValue
+                select record;
+
+            return result.FirstOrDefault();
         }
     }
 }

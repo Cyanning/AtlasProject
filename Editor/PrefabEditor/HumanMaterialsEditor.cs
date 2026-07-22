@@ -25,30 +25,27 @@ namespace Editor.PrefabEditor
             { "Miniao", "Assets/model/NvMaps/Miniao" }
         };
 
-        private static readonly int ShaderIDTextureSurface = Shader.PropertyToID("_albe");
+        private static readonly int ShaderIDTextureAlbe = Shader.PropertyToID("_albe");
         private static readonly int ShaderIDTextureNormal = Shader.PropertyToID("_normal");
 
-        private RendererWrapper[] _currentSystemRecords;
+        private readonly HumanRendererRecorder _currentRecorder = new();
         private readonly Dictionary<string, Material> _materialCache = new(StringComparer.Ordinal);
 
         /// <summary>
         /// 遍历目标对象下的所有叶子节点，并替换各叶子节点的材质。
         /// </summary>
+        /// <param name="target">目标预制体群根对象</param>
+        /// <param name="targetBodyStruct">自定义根对象的模型数据</param>
         /// <returns>成功替换材质的叶子节点数量。</returns>
-        public int ReplaceMaterials(GameObject target)
+        public int ReplaceMaterials(GameObject target, BodyStruct targetBodyStruct = null)
         {
             if (target == null)
             {
                 throw new ArgumentNullException(nameof(target));
             }
 
-            if (!BodyStruct.GetFromPrefab(target.name, out var currentRootStruct))
-            {
-                Debug.LogError($"根模型不符合标准 {target.name}");
-                return 0;
-            }
-
-            if (!TryLoadSystemRecords(currentRootStruct))
+            targetBodyStruct ??= new BodyStruct(target.name);
+            if (!TryLoadSystemRecords(targetBodyStruct))
             {
                 Debug.LogError($"找不到记录的材质数据 {target.name}");
                 return 0;
@@ -67,42 +64,9 @@ namespace Editor.PrefabEditor
         }
 
         /// <summary>
-        /// 查找单个叶子节点的原材质记录，并应用对应的 Nv 材质。
-        /// </summary>
-        private bool ReplaceLeafMaterials(GameObject target)
-        {
-            if (!BodyStruct.GetFromPrefab(target.name, out var body))
-            {
-                Debug.LogWarning($"无法从模型名称解析 value：{target.name}");
-                return false;
-            }
-
-            if (!target.TryGetComponent(out Renderer renderer))
-            {
-                Debug.LogWarning($"模型未挂载 Renderer：{target.name}");
-                return false;
-            }
-
-            var rendererRecord = GetRendererRecord(body.value);
-            if (rendererRecord == null)
-            {
-                Debug.LogWarning($"没有找到模型的材质记录：{target.name}，value：{body.value}");
-                return false;
-            }
-
-            // 添加根据记录找材质球，数量对不上不替换
-            var newMaterials = GetMaterials(rendererRecord);
-            if (newMaterials.Length != renderer.sharedMaterials.Length)
-            {
-                return false;
-            }
-
-            renderer.sharedMaterials = newMaterials;
-            return true;
-        }
-
-        /// <summary>
         /// 读取材质记录文档
+        /// <param name="rootStruct">缓存了材质数据的对象的根节点</param>
+        /// <returns>是否成功获取</returns>
         /// </summary>
         private bool TryLoadSystemRecords(BodyStruct rootStruct)
         {
@@ -111,78 +75,160 @@ namespace Editor.PrefabEditor
                 throw new DirectoryNotFoundException(RendererRecordsDirectory);
             }
 
+            // 遍历文件夹中的材质数据文件，找到符合条件的文件绝对地址
             var recordFilePath = Directory.EnumerateFiles(
                 RendererRecordsDirectory,
                 $"*~{rootStruct.value}.json",
                 SearchOption.TopDirectoryOnly).FirstOrDefault();
 
-            if (string.IsNullOrEmpty(recordFilePath))
+            // 极简语句判断是否加载成功，HumanRendererRecorder自动加载文件
+            return !string.IsNullOrEmpty(recordFilePath) && _currentRecorder.LoadJson(recordFilePath);
+        }
+
+        /// <summary>
+        /// 查找单个叶子节点的原材质记录，并应用对应的 Nv 材质。
+        /// <param name="target">被替换的 Game 对象</param>
+        /// <returns>是否成功替换材质球</returns>
+        /// </summary>
+        private bool ReplaceLeafMaterials(GameObject target)
+        {
+            var body = new BodyStruct(target.name);
+            if (!target.TryGetComponent(out Renderer renderer))
             {
+                Debug.LogWarning($"模型未挂载 Renderer：{target.name}");
                 return false;
             }
 
-            var recordsWrapper = HumanRendererRecorder.LoadJson(recordFilePath);
-            if (recordsWrapper?.renderers == null || recordsWrapper.renderers.Count == 0)
+            var rendererRecord = _currentRecorder.GetRendererRecord(body.value);
+            if (rendererRecord == null)
             {
-                throw new InvalidDataException($"Renderer 记录文件格式错误：{recordFilePath}");
+                Debug.LogWarning($"没有找到模型的材质记录：{body.name}，value：{body.value}");
+                return false;
             }
 
-            _currentSystemRecords = recordsWrapper.renderers.ToArray();
+            // 根据材质记录 转换为新材质数据，并找到材质球，再修改贴图
+            var newRendererRecord = WrapperConverter(rendererRecord);
+            var newMaterials = GetMaterials(renderer.sharedMaterials, newRendererRecord);
+            for (var i = 0; i < newMaterials.Length; i++)
+            {
+                SetTexture(newMaterials[i], newRendererRecord.materials[i].albe, ShaderIDTextureAlbe);
+                SetTexture(newMaterials[i], newRendererRecord.materials[i].normal, ShaderIDTextureNormal);
+            }
+
+            renderer.sharedMaterials = newMaterials;
             return true;
         }
 
         /// <summary>
-        /// 从缓存加载材质
-        /// </summary>
-        private RendererWrapper GetRendererRecord(int bodyValue)
-        {
-            var result =
-                from record in _currentSystemRecords
-                where record != null && record.value == bodyValue
-                select record;
-
-            return result.FirstOrDefault();
-        }
-
-        /// <summary>
-        /// 获取新材质，优先从材质球缓存加载
+        /// 根据材质记录，获取新材质（优先从材质球缓存加载）
         /// <param name="rendererRecord">材质球数据，依据传入的数据转换为新数据</param>
         /// </summary>
-        private Material[] GetMaterials(RendererWrapper rendererRecord)
+        private Material[] GetMaterials(Material[] currentMaterials, RendererWrapper rendererRecord)
         {
             var materials = new Material[rendererRecord.materials.Count];
-            for (var i = 0; i < rendererRecord.materials.Count; i++)
+            for (var i = 0; i < materials.Length; i++)
             {
                 var materialRecord = rendererRecord.materials[i];
-                if (materialRecord == null || string.IsNullOrWhiteSpace(materialRecord.name))
+                materials[i] = null;
+
+                // 材质球新旧对比, 一致则直接从Renderer组件中拿
+                if (i < currentMaterials.Length && currentMaterials[i].name == materialRecord.name)
                 {
-                    Debug.LogWarning($"value 为 {rendererRecord.value} 的第 {i} 个材质记录无效。");
+                    materials[i] = currentMaterials[i];
                     continue;
                 }
 
-                var newMaterialRecord = MarkNewMaterialWrapper(materialRecord);
+                // 优先拿取缓存的材质球对象
+                if (_materialCache.TryGetValue(materialRecord.name, out var newMaterial))
+                {
+                    continue;
+                }
 
-                if (_materialCache.TryGetValue(newMaterialRecord.name, out materials[i])) continue;
+                // 从项目资源拿取材质球
+                var newMaterialPath = Path.Combine(MaterialAssetsDirectory, $"{materialRecord.name}.mat");
+                newMaterial = AssetDatabase.LoadAssetAtPath<Material>(newMaterialPath);
+                if (newMaterial == null)
+                {
+                    continue;
+                }
 
-                if (MarkMaterial(newMaterialRecord, out materials[i])) continue;
+                // 修正材质球名称
+                if (materialRecord.name != newMaterial.name)
+                {
+                    newMaterial.name = materialRecord.name;
+                    AssetDatabase.RenameAsset(newMaterialPath, materialRecord.name);
+                }
 
-                materials[i] = null;
+                // 缓存材质球
+                _materialCache[newMaterial.name] = newMaterial;
+                materials[i] = newMaterial;
             }
 
             return materials;
         }
 
         /// <summary>
+        /// 给材质球贴图
+        /// </summary>
+        private static void SetTexture(Material material, string imgName, int shaderID)
+        {
+            // 判断传入的参数是否有效
+            if (!material.HasProperty(shaderID) || string.IsNullOrWhiteSpace(imgName))
+            {
+                return;
+            }
+
+            // 判断是否会重复设置
+            if (material.GetTexture(shaderID)?.name == Path.GetFileNameWithoutExtension(imgName))
+            {
+                return;
+            }
+
+            foreach (var textureAsset in TextureAssetsDirectory)
+            {
+                if (imgName.Contains(textureAsset.Key))
+                {
+                    var newTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                        Path.Combine(textureAsset.Value, imgName)
+                    );
+
+                    if (newTexture == null) continue;
+
+                    material.SetTexture(shaderID, newTexture);
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
         /// 把老名字换成新名字
         /// </summary>
-        private static MaterialWrapper MarkNewMaterialWrapper(MaterialWrapper oldMaterial)
+        private static RendererWrapper WrapperConverter(RendererWrapper oldRenderer)
         {
-            return new MaterialWrapper
+            var newRenderer = new RendererWrapper
             {
-                name = GetNewName(oldMaterial.name),
-                albe = GetNewName(oldMaterial.albe),
-                normal = GetNewName(oldMaterial.normal)
+                value = oldRenderer.value,
+                materials = new List<MaterialWrapper>()
             };
+            foreach (var oldMaterial in oldRenderer.materials)
+            {
+                if (oldMaterial == null || string.IsNullOrWhiteSpace(oldMaterial.name))
+                {
+                    Debug.LogWarning($"value 为 {oldRenderer.value} 有无效材质记录");
+                    continue;
+                }
+
+                newRenderer.materials.Add(
+                    new MaterialWrapper
+                    {
+                        name = GetNewName(oldMaterial.name),
+                        albe = GetNewName(oldMaterial.albe),
+                        normal = GetNewName(oldMaterial.normal)
+                    }
+                );
+            }
+
+            return newRenderer;
         }
 
         private static string GetNewName(string oldName)
@@ -195,59 +241,6 @@ namespace Editor.PrefabEditor
             return oldName.StartsWith(NewMaterialPrefix, StringComparison.Ordinal)
                 ? oldName
                 : $"{NewMaterialPrefix}{oldName}";
-        }
-
-        /// <summary>
-        /// 制作材质球
-        /// </summary>
-        private bool MarkMaterial(MaterialWrapper materialWrapper, out Material newMaterial)
-        {
-            var newMaterialPath = Path.Combine(MaterialAssetsDirectory, $"{materialWrapper.name}.mat");
-            newMaterial = AssetDatabase.LoadAssetAtPath<Material>(newMaterialPath);
-
-            if (newMaterial == null)
-            {
-                return false;
-            }
-
-            if (materialWrapper.name != newMaterial.name)
-            {
-                Debug.Log($"给材质球改名：{newMaterial.name} ==> {materialWrapper.name}");
-                newMaterial.name = materialWrapper.name;
-                AssetDatabase.RenameAsset(newMaterialPath, materialWrapper.name);
-            }
-
-            SetTexture(newMaterial, materialWrapper.albe, ShaderIDTextureSurface);
-            SetTexture(newMaterial, materialWrapper.normal, ShaderIDTextureNormal);
-
-            _materialCache[newMaterial.name] = newMaterial;
-
-            return true;
-        }
-
-        /// <summary>
-        /// 给材质球贴图
-        /// </summary>
-        private static void SetTexture(Material material, string imgName, int shaderID)
-        {
-            if (!material.HasProperty(shaderID) || string.IsNullOrWhiteSpace(imgName))
-            {
-                return;
-            }
-
-            foreach (var textureAsset in TextureAssetsDirectory)
-            {
-                if (imgName.Contains(textureAsset.Key))
-                {
-                    var newTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
-                        Path.Combine(textureAsset.Value, imgName)
-                    );
-                    if (newTexture == null) continue;
-
-                    material.SetTexture(shaderID, newTexture);
-                    return;
-                }
-            }
         }
     }
 }

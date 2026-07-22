@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using Editor.PrefabEditor;
 using System.Collections.Generic;
+using Plugins.models;
 
 
 namespace Editor
@@ -22,7 +23,7 @@ namespace Editor
             CompareTrees.Run(bodyMale.transform);
         }
 
-        [MenuItem("Customer/批量修改材质")]
+        [MenuItem("Customer/批量修改材质（预制体）")]
         // Unity 菜单入口：查找模型根节点并启动树结构比较。
         public static void ChangeMaterials()
         {
@@ -45,6 +46,24 @@ namespace Editor
                 var num = materialEditor.ReplaceMaterials(brench.gameObject);
                 Debug.Log($"{brench.name} 已修改 {num} 个模型的材质");
             }
+        }
+
+        [MenuItem("Customer/批量修改材质（FBX）")]
+        // Unity 菜单入口：查找模型根节点并启动树结构比较。
+        public static void ChangeMaterialsForFbx()
+        {
+            var fbxPrefab = GameObject.Find("NvMiniao");
+            var fbxBodyStruct = new BodyStruct(201000, "泌尿生殖");
+            if (fbxPrefab is null)
+            {
+                Debug.LogError("未找到根节点：BodyMale");
+                return;
+            }
+
+            var materialEditor = new HumanMaterialsEditor();
+
+            var num = materialEditor.ReplaceMaterials(fbxPrefab, fbxBodyStruct);
+            Debug.Log($"{fbxPrefab.name} 已修改 {num} 个模型的材质");
         }
 
 

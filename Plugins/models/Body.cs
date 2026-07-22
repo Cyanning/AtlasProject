@@ -75,7 +75,7 @@ namespace Plugins.models
         public static bool GetFromPrefab(string title, out BodyStruct body)
         {
             body = new BodyStruct(title);
-            return body.value > 0 && body.name.Length > 0;
+            return body.value >= 100000 && !string.IsNullOrWhiteSpace(body.name);
         }
 
         public int GenderNum()
