@@ -28,37 +28,60 @@ namespace Editor.PrefabEditor
     public class BodyRenderersWrapper
     {
         public List<RendererWrapper> renderers = new();
+
+        public void SaveJson(string filePath)
+        {
+            File.WriteAllText(filePath, JsonUtility.ToJson(this, true));
+        }
+
+        public static bool LoadJson(string filePath, out BodyRenderersWrapper wrapper)
+        {
+            wrapper = JsonUtility.FromJson<BodyRenderersWrapper>(File.ReadAllText(filePath));
+            return wrapper.renderers.Count > 0;
+        }
+
+        public RendererWrapper GetRendererRecord(int bodyValue)
+        {
+            var result =
+                from record in renderers
+                where record != null && record.value == bodyValue
+                select record;
+
+            return result.FirstOrDefault();
+        }
     }
 
     /// <summary>
     /// 记录 Renderer 的共享材质和贴图，并将记录缓存为 JSON。
     /// </summary>
-    public sealed class HumanRendererRecorder
+    public static class HumanRendererRecorder
     {
         private static readonly int ShaderIDTextureSurface = Shader.PropertyToID("_albe");
         private static readonly int ShaderIDTextureNormal = Shader.PropertyToID("_normal");
-        private BodyRenderersWrapper _renderers = new ();
 
         /// <summary>
         /// 构建 MaterrialWrapper 并追加到缓存。
         /// </summary>
-        public void Record(GameObject target)
+        private static bool RecordRenderer(GameObject target, out RendererWrapper rendererWrapper)
         {
-            if (target == null) throw new ArgumentNullException(nameof(target));
+            if (target == null)
+                throw new ArgumentNullException(nameof(target));
 
-            if (!BodyStruct.GetFromPrefab(target.name, out var body))
-            {
-                Debug.LogWarning($"模型名称有问题：{target.name}");
-                return;
-            }
+            rendererWrapper = null;
 
             if (!target.TryGetComponent(out Renderer renderer))
             {
                 Debug.LogWarning($"无Renderer挂载：{target.name}");
-                return;
+                return false;
             }
 
-            var wrapper = new RendererWrapper()
+            if (!BodyStruct.GetFromPrefab(target.name, out var body))
+            {
+                Debug.LogWarning($"模型名称有问题：{target.name}");
+                return false;
+            }
+
+            rendererWrapper = new RendererWrapper()
             {
                 value = body.value,
                 materials = new List<MaterialWrapper>()
@@ -68,7 +91,7 @@ namespace Editor.PrefabEditor
             if (sharedMaterials.Length == 0)
             {
                 Debug.LogWarning($"无材质球：{target.name}");
-                return;
+                return false;
             }
 
             foreach (var material in sharedMaterials)
@@ -84,10 +107,10 @@ namespace Editor.PrefabEditor
                     Debug.LogWarning($"无贴图：{target.name}");
                 }
 
-                wrapper.materials.Add(tex);
+                rendererWrapper.materials.Add(tex);
             }
 
-            _renderers.renderers.Add(wrapper);
+            return true;
         }
 
         private static string GetTextureAssetName(Material material, int textureID)
@@ -97,31 +120,18 @@ namespace Editor.PrefabEditor
                 : "";
         }
 
-        /// <summary>
-        /// 保存为json
-        /// </summary>
-        public void SaveJson(string filePath)
+        public static BodyRenderersWrapper RecordChildren(GameObject rootGo)
         {
-            File.WriteAllText(filePath, JsonUtility.ToJson(_renderers, true));
-        }
+            BodyRenderersWrapper renderers = new();
+            foreach (var target in rootGo.GetComponentsInChildren<GameObject>())
+            {
+                if (RecordRenderer(target, out var rendererWrapper))
+                {
+                    renderers.renderers.Add(rendererWrapper);
+                }
+            }
 
-        /// <summary>
-        /// 读取 JSON 并反序列化为 RendererWrapper 对象。
-        /// </summary>
-        public bool LoadJson(string filePath)
-        {
-            _renderers = JsonUtility.FromJson<BodyRenderersWrapper>(File.ReadAllText(filePath));
-            return _renderers.renderers.Count > 0;
-        }
-
-        public RendererWrapper GetRendererRecord(int bodyValue)
-        {
-            var result =
-                from record in _renderers.renderers
-                where record != null && record.value == bodyValue
-                select record;
-
-            return result.FirstOrDefault();
+            return renderers;
         }
     }
 }

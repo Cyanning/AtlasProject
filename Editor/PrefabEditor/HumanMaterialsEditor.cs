@@ -17,6 +17,8 @@ namespace Editor.PrefabEditor
         private const string RendererRecordsDirectory = @"D:\AnatomyLibrary\unity_editor";
         private const string MaterialAssetsDirectory = "Assets/model/Materials";
 
+        private BodyRenderersWrapper _currentRecorder;
+
         private static readonly Dictionary<string, string> TextureAssetsDirectory = new()
         {
             { "Guge", "Assets/model/NvMaps/Guge" },
@@ -28,7 +30,6 @@ namespace Editor.PrefabEditor
         private static readonly int ShaderIDTextureAlbe = Shader.PropertyToID("_albe");
         private static readonly int ShaderIDTextureNormal = Shader.PropertyToID("_normal");
 
-        private readonly HumanRendererRecorder _currentRecorder = new();
         private readonly Dictionary<string, Material> _materialCache = new(StringComparer.Ordinal);
 
         /// <summary>
@@ -82,7 +83,8 @@ namespace Editor.PrefabEditor
                 SearchOption.TopDirectoryOnly).FirstOrDefault();
 
             // 极简语句判断是否加载成功，HumanRendererRecorder自动加载文件
-            return !string.IsNullOrEmpty(recordFilePath) && _currentRecorder.LoadJson(recordFilePath);
+            return !string.IsNullOrEmpty(recordFilePath) &&
+                   BodyRenderersWrapper.LoadJson(recordFilePath, out _currentRecorder);
         }
 
         /// <summary>
