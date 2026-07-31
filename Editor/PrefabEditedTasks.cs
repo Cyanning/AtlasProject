@@ -36,7 +36,7 @@ namespace Editor
 
             var root = bodyMale.transform;
             var targets = new List<string> { "骨骼系统~101000", "结缔组织~111000", "肌肉系统~121000", "泌尿生殖~201000" };
-            var materialEditor = new HumanMaterialsEditor();
+            var materialEditor = new HumanMaterialsEditor(new NameConverter("Nv"));
 
             for (var i = 0; i < root.childCount; i++)
             {
@@ -60,13 +60,10 @@ namespace Editor
                 return;
             }
 
-            var materialEditor = new HumanMaterialsEditor();
+            var materialEditor = new HumanMaterialsEditor(new NameConverter("Nv"));
 
             var num = materialEditor.ReplaceMaterials(fbxPrefab, fbxBodyStruct);
             Debug.Log($"{fbxPrefab.name} 已修改 {num} 个模型的材质");
         }
-
-
     }
-
 }
