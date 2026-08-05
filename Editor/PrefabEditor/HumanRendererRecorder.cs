@@ -83,7 +83,7 @@ namespace Editor.PrefabEditor
 
             rendererWrapper = new RendererWrapper()
             {
-                value = body.value,
+                value = body.Value,
                 materials = new List<MaterialWrapper>()
             };
 

@@ -42,7 +42,7 @@ namespace Editor.PrefabEditor
             }
             else if (BodyStruct.GetFromPrefab(nodeTf.name, out var body))
             {
-                flag = _checkList.Contains(body.value);
+                flag = _checkList.Contains(body.Value);
             }
 
             CheckState(nodeGo, flag);

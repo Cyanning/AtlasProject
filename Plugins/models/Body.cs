@@ -10,33 +10,37 @@ using Plugins.models.orm;
 namespace Plugins.models
 {
     [Serializable]
-    public class BodyStruct : IEquatable<BodyStruct>
+    public readonly struct BodyStruct : IEquatable<BodyStruct>
     {
-        public readonly string name;
-        public readonly int value;
-        private readonly string _key;
+        public readonly string Name;
+        public readonly int Value;
+
+        public static BodyStruct Default => new(0, string.Empty);
 
         public BodyStruct(int value, string name)
         {
-            this.value = value;
-            this.name = name;
-            _key = $"{name}~{value}";
+            Value = value;
+            Name = name;
         }
 
         public BodyStruct(int value)
         {
-            this.value = value;
-            name = "";
-            _key = $"{name}~{value}";
+            Value = value;
+            Name = string.Empty;
         }
 
         public BodyStruct(string title)
         {
+            if (title is null)
+            {
+
+                Name = string.Empty;
+                Value = 0;
+                return;
+            }
+
             string valueText;
             string nameText;
-
-            if (title is null) return;
-
             if (title.Contains("~") && title.Split('~') is { Length: 2 } temp)
             {
                 valueText = temp[1];
@@ -48,44 +52,53 @@ namespace Plugins.models
                 nameText = "";
             }
 
-            name = int.TryParse(valueText, out value) ? nameText : title;
-
-            _key = $"{name}~{value}";
-        }
-
-        public bool Equals(BodyStruct other)
-        {
-            if (other is null) return false;
-
-            if (ReferenceEquals(this, other)) return true;
-
-            return value == other.value && name == other.name;
-        }
-
-        public override bool Equals(object obj)
-        {
-            return Equals(obj as BodyStruct);
-        }
-
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(_key);
+            Name = int.TryParse(valueText, out Value) ? nameText : title;
         }
 
         public static bool GetFromPrefab(string title, out BodyStruct body)
         {
-            body = new BodyStruct(title);
-            return body.value >= 100000 && !string.IsNullOrWhiteSpace(body.name);
+            body = new(title);
+            return body.Value >= 100000 && !string.IsNullOrWhiteSpace(body.Name);
+        }
+
+        public bool Equals(BodyStruct other)
+        {
+            return Value == other.Value && Name == other.Name;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is BodyStruct other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Value, Name);
+        }
+
+        // 支持 == 和 != 运算符直接比较
+        public static bool operator ==(BodyStruct left, BodyStruct right)
+        {
+            return left.Equals(right);
+        }
+        public static bool operator !=(BodyStruct left, BodyStruct right)
+        {
+            return !left.Equals(right);
+        }
+
+        public override string ToString()
+        {
+            return string.IsNullOrEmpty(Name) ? $"{Value}" : $"{Name}~{Value}";
         }
 
         public int GenderNum()
         {
-            return (value < 1000000 ? value / 1000 : value / 10000) % 10;
+            return (Value < 1000000 ? Value / 1000 : Value / 10000) % 10;
         }
 
         public int SystemNum()
         {
-            return (value < 1000000 ? value / 10000 : value / 100000) - 10;
+            return (Value < 1000000 ? Value / 10000 : Value / 100000) - 10;
         }
     }
 
@@ -101,17 +114,17 @@ namespace Plugins.models
         public BodyStructWrapper(int gender, IEnumerable elements)
         {
             this.gender = gender;
-            this.elements = new List<BodyStruct>();
+            this.elements = new();
 
             foreach (var e in elements)
             {
                 this.elements.Add(
                     e switch
                     {
-                        int num => new BodyStruct(num),
-                        string str => new BodyStruct(str),
+                        int num => new(num),
+                        string str => new(str),
+                        Info tab => new(tab.Value, tab.Name),
                         BodyStruct obj => obj,
-                        Info tab => new BodyStruct(tab.Value, tab.Name),
                         _ => throw new NotSupportedException()
                     }
                 );
@@ -134,12 +147,12 @@ namespace Plugins.models
 
         public int[] ValuesAsInt()
         {
-            return elements.Select(static e => e.value).ToArray();
+            return elements.Select(static e => e.Value).ToArray();
         }
 
         public string[] ValuesAsStr()
         {
-            return elements.Select(static e => e.value.ToString()).ToArray();
+            return elements.Select(static e => e.Value.ToString()).ToArray();
         }
     }
 }

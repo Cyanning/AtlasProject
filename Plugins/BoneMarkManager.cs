@@ -180,13 +180,13 @@ namespace Plugins
                 return false;
 
             // 判断是否是孔洞虚拟模型
-            if (body.name.StartsWith("foramens_"))
+            if (body.Name.StartsWith("foramens_"))
             {
                 bonemark = new Bonemark
                 {
                     type = markType,
-                    name = body.name,
-                    planeValue = body.value
+                    name = body.Name,
+                    planeValue = body.Value
                 };
                 return true;
             }
@@ -218,8 +218,8 @@ namespace Plugins
             bonemark = new Bonemark
             {
                 type = markType,
-                value = body.value,
-                name = body.name,
+                value = body.Value,
+                name = body.Name,
                 color = $"{r},{g},{b}",
                 uvx = uv.x,
                 uvy = uv.y

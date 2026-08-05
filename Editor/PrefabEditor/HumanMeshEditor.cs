@@ -48,9 +48,9 @@ namespace Editor.PrefabEditor
                     meshName = skMesh.sharedMesh.name.Trim();
                 }
 
-                if (meshName != body.value.ToString())
+                if (meshName != body.Value.ToString())
                 {
-                    Debug.LogError($"网格问题：{body.name}: {meshName} ==> {body.value}");
+                    Debug.LogError($"网格问题：{body.Name}: {meshName} ==> {body.Value}");
                 }
             }
             catch (NullReferenceException)
@@ -68,7 +68,7 @@ namespace Editor.PrefabEditor
 
                 if (!meshResult)
                 {
-                    Debug.LogError($"网格为空：{body.name}, {body.value}");
+                    Debug.LogError($"网格为空：{body.Name}, {body.Value}");
                 }
             }
         }
@@ -92,7 +92,7 @@ namespace Editor.PrefabEditor
             }
 
             // 遍历所有fbx文件查找匹配的mesh
-            var value = body.value.ToString();
+            var value = body.Value.ToString();
             foreach (var fbxFile in _fbxFiles)
             {
                 foreach (var obj in AssetDatabase.LoadAllAssetsAtPath(fbxFile))

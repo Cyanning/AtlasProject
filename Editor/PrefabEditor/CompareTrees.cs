@@ -74,7 +74,7 @@ namespace Editor.PrefabEditor
                     continue;
                 }
 
-                AddTransformPath(body.value, transform);
+                AddTransformPath(body.Value, transform);
                 AddTransformNode(body, transform);
             }
 
@@ -97,17 +97,17 @@ namespace Editor.PrefabEditor
         // 将一个可解析的 Transform 节点加入模型索引，重复 value 只保留首个节点。
         private void AddTransformNode(BodyStruct body, Transform transform)
         {
-            if (_transformNodes.ContainsKey(body.value))
+            if (_transformNodes.ContainsKey(body.Value))
             {
                 return;
             }
 
             _transformNodes.Add(
-                body.value,
+                body.Value,
                 new TreeNode
                 {
-                    Value = body.value,
-                    Name = body.name,
+                    Value = body.Value,
+                    Name = body.Name,
                     ParentValue = FindParentValue(transform)
                 }
             );
@@ -454,7 +454,7 @@ namespace Editor.PrefabEditor
             {
                 if (BodyStruct.GetFromPrefab(parent.name, out var parentBody))
                 {
-                    return parentBody.value;
+                    return parentBody.Value;
                 }
 
                 parent = parent.parent;

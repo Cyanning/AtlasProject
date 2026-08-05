@@ -54,22 +54,26 @@ namespace Editor.PrefabEditor
         /// 加载一个系统的全部 Renderer 记录。再次加载其他系统时会替换当前记录，
         /// 材质缓存会保留，以便不同模型继续共用已经加载的材质资源。
         /// </summary>
-        public bool LoadSystemRecords(GameObject systemRoot, BodyStruct systemBody = null)
+        public bool LoadSystemRecords(GameObject systemRoot, BodyStruct systemBody = default)
         {
             if (systemRoot == null)
             {
                 throw new ArgumentNullException(nameof(systemRoot));
             }
 
-            systemBody ??= new BodyStruct(systemRoot.name);
-            if (_currentRecorder != null && _currentSystemValue == systemBody.value)
+            if (systemBody.Value == 0)
+            {
+                systemBody = new(systemRoot.name);
+            }
+
+            if (_currentRecorder != null && _currentSystemValue == systemBody.Value)
             {
                 return true;
             }
 
             var recordFilePath = Directory.EnumerateFiles(
                 RendererRecordsDirectory,
-                $"*~{systemBody.value}.json",
+                $"*~{systemBody.Value}.json",
                 SearchOption.TopDirectoryOnly).FirstOrDefault();
 
             _currentRecorder = null;
@@ -81,14 +85,14 @@ namespace Editor.PrefabEditor
                 return false;
             }
 
-            _currentSystemValue = systemBody.value;
+            _currentSystemValue = systemBody.Value;
             return true;
         }
 
         /// <summary>
         /// 批量处理根对象下的所有叶子 GameObject。
         /// </summary>
-        public int ProcessChildren(GameObject root, RendererChange changes = RendererChange.All, BodyStruct rootBody = null)
+        public int ProcessChildren(GameObject root, RendererChange changes = RendererChange.All, BodyStruct rootBody = default)
         {
             if (!LoadSystemRecords(root, rootBody))
             {
@@ -148,14 +152,6 @@ namespace Editor.PrefabEditor
             return ProcessGameObject(target, RendererChange.Textures);
         }
 
-        /// <summary>
-        /// 保留原有调用入口：批量替换子对象的材质和贴图。
-        /// </summary>
-        public int ReplaceMaterials(GameObject target, BodyStruct targetBodyStruct = null)
-        {
-            return ProcessChildren(target, RendererChange.All, targetBodyStruct);
-        }
-
         private bool TryGetRendererRecord(GameObject target, out Renderer renderer, out RendererWrapper rendererRecord)
         {
             renderer = null;
@@ -174,10 +170,10 @@ namespace Editor.PrefabEditor
             }
 
             var body = new BodyStruct(target.name);
-            var oldRendererRecord = _currentRecorder.GetRendererRecord(body.value);
+            var oldRendererRecord = _currentRecorder.GetRendererRecord(body.Value);
             if (oldRendererRecord == null)
             {
-                Debug.LogWarning($"没有找到模型的材质记录：{body.name}，value：{body.value}");
+                Debug.LogWarning($"没有找到模型的材质记录：{body.Name}，value：{body.Value}");
                 return false;
             }
 
