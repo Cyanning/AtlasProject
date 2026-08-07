@@ -26,6 +26,7 @@ namespace Editor.PrefabEditor
     public class CompareTrees
     {
         private readonly Transform _root;
+        private readonly AnatomyDatabase _data;
 
         private readonly Dictionary<int, TreeNode> _transformNodes = new();
         private readonly Dictionary<int, List<string>> _transformValuePaths = new();
@@ -62,6 +63,7 @@ namespace Editor.PrefabEditor
         private CompareTrees(Transform root)
         {
             _root = root;
+            _data = new AnatomyDatabase();
         }
         
         // 从 Transform 层级解析 BodyStruct，并建立模型树的 value 索引。
@@ -157,7 +159,7 @@ namespace Editor.PrefabEditor
         {
             foreach (var transformNode in _transformNodes.Values)
             {
-                if (!AnatomyDatabase.FindBodyFromValue(transformNode.Value, out var info))
+                if (!_data.FindBodyFromValue(transformNode.Value, out var info))
                 {
                     continue;
                 }
@@ -175,7 +177,7 @@ namespace Editor.PrefabEditor
                 return;
             }
 
-            foreach (var childInfo in AnatomyDatabase.FindAllChildren(parentInfo))
+            foreach (var childInfo in _data.FindAllChildren(parentInfo))
             {
                 parentNode.ChildrenValues.Add(childInfo.Value);
                 AddInfoParentValue(childInfo.Value, childInfo.Pval);
@@ -285,7 +287,7 @@ namespace Editor.PrefabEditor
                     Name = transformNode.Name
                 };
 
-                if (AnatomyDatabase.UpdateName(info))
+                if (_data.UpdateName(info))
                 {
                     _updatedNameCount++;
                 }

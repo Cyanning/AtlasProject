@@ -110,7 +110,7 @@ namespace Plugins
             {
                 var prefabNames = clickedModel.name.Split("~");
                 var timestamp = new DateTimeOffset(DateTime.Now).ToUnixTimeMilliseconds();
-                _activeLabel = new AtlasLabel
+                _activeLabel = new()
                 {
                     name = prefabNames[0] + "_" + timestamp.ToString()[^4..],
                     value = Convert.ToInt32(prefabNames[1]),
@@ -123,7 +123,7 @@ namespace Plugins
 
             if (_boneMarkManager.markType != 0 && _camCtrl.GetTextureUv(out var uv))
             {
-                if (_boneMarkManager.FindBonemarkData(clickedModel, uv, out var bonemark))
+                if (_boneMarkManager.FindBonemarkData(clickedModel.gameObject, uv, out var bonemark))
                 {
                     Debug.Log(bonemark.color);
                 }

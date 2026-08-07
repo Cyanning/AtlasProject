@@ -10,8 +10,8 @@ namespace Plugins
     {
         public string fileName;
 
-        public Bone bone; // 缓存的骨标
         [CanBeNull] private Bonemark _bonemark; // 上一个点击的骨标
+        private Bones _bones; // 缓存的骨标集合
 
         private Text _activeInfo; // 信息框文字
         private MainCameraContraller _camCtrl; // 封装的相机对象
@@ -28,7 +28,7 @@ namespace Plugins
         private void Awake()
         {
             // 初始化数据
-            if (!BoneFactory.Load(fileName, out bone))
+            if (!BoneFactory.Load(fileName, out _bones))
             {
                 Debug.LogWarning("Bone Not Found!");
             }
@@ -68,8 +68,8 @@ namespace Plugins
             UpdateActiveInfo();
         }
 
-        public string[] ModelDisplayed => bone.family;
-        public int ModelGender => bone.gender;
+        public string[] ModelDisplayed => _bones.family;
+        public int ModelGender => _bones.gender;
 
         // 创建一个新骨性标注缓存
         public void ClickRespond(Transform clickedModel)
@@ -80,7 +80,7 @@ namespace Plugins
             if (
                 _boneMarkManager.markType != 0 &&
                 _camCtrl.GetTextureUv(out var uv) &&
-                _boneMarkManager.FindBonemarkData(clickedModel, uv, out _bonemark)
+                _boneMarkManager.FindBonemarkData(clickedModel.gameObject, uv, out _bonemark)
             )
                 UpdateActiveInfo("新建：\n");
             UpdateActiveInfo();
@@ -98,7 +98,7 @@ namespace Plugins
             _bonemark.cameraRotationX = rot.x;
             _bonemark.cameraRotationY = rot.y;
             _bonemark.cameraRotationZ = rot.z;
-            bone.bonemarks.Add(_bonemark);
+            _bones.bonemarks.Add(_bonemark);
 
             UpdateActiveInfo("已添加：\n");
         }
@@ -106,9 +106,9 @@ namespace Plugins
         // 视角复位
         private void ResetAtlasCarmera()
         {
-            if (bone.bonemarks.Count > 0)
+            if (_bones.bonemarks.Count > 0)
             {
-                var mark = bone.bonemarks[^1];
+                var mark = _bones.bonemarks[^1];
                 _camCtrl.SetCameraTransform(
                     mark.cameraPositionX,
                     mark.cameraPositionY,
@@ -126,7 +126,7 @@ namespace Plugins
 
         private void SaveBonemarks()
         {
-            BoneFactory.Save(bone, fileName);
+            BoneFactory.Save(_bones, fileName);
             _bonemark = null;
             UpdateActiveInfo("所有标志已保存");
         }

@@ -9,7 +9,7 @@ namespace Editor
     {
         // 表单数据
         private string _boneFileName;
-        private Bone _bone;
+        private Bones _bone;
 
         //MenuItem会在unity菜单栏添加自定义新项
         [MenuItem("Customer/骨骼-创建单独视图")]
@@ -20,7 +20,7 @@ namespace Editor
 
         private void OnEnable()
         {
-            _bone = new Bone();
+            _bone = new();
             // 获取当前显示的模型数据
             var bodysForActive = PrefabCollection.EncodetModelActive();
             _bone.gender = bodysForActive.gender;

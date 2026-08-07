@@ -8,10 +8,17 @@ using UnityEditor;
 
 namespace Plugins
 {
+    internal sealed class BoneMaps
+    {
+        public Texture2D Essence;
+        public readonly Dictionary<int, Texture2D> Invisible = new();
+        public readonly Dictionary<int, Texture2D> Displayed = new();
+    }
+
     public class BoneMarkManager : MonoBehaviour
     {
         public int markType;
-        private const int TypeSum = 4;
+        private const int markTypeRange = 4;
 
         private ClickEvent _clickEvent;
 
@@ -48,7 +55,7 @@ namespace Plugins
 
         public void SettingBonemarkMode()
         {
-            if (markType < TypeSum)
+            if (markType < markTypeRange)
             {
                 markType++;
 
@@ -78,7 +85,7 @@ namespace Plugins
 
             if (materials.Count == 0) return;
             _materialChanged = materials.ToArray();
-            _textures = new Dictionary<string, BoneMaps>();
+            _textures = new();
         }
 
         private void ChangeMapsForBone()
@@ -91,8 +98,8 @@ namespace Plugins
                 material.shader.name = "ame3";
                 material.SetColor(ShaderIDBgcolor, Color.white);
                 material.SetInt(ShaderIDTranslucent, 1);
-                material.SetTexture(ShaderIDTexInvisible, _textures[markName].invisible[markType]);
-                material.SetTexture(ShaderIDTexDisplayed, _textures[markName].displayed[markType]);
+                material.SetTexture(ShaderIDTexInvisible, _textures[markName].Invisible[markType]);
+                material.SetTexture(ShaderIDTexDisplayed, _textures[markName].Displayed[markType]);
             }
         }
 
@@ -104,7 +111,7 @@ namespace Plugins
                 if (!_textures.ContainsKey(markName)) GetSeriesMapsforMaterial(markName);
 
                 material.shader.name = "ameop";
-                material.SetTexture(ShaderIDTexDisplayed, _textures[markName].essence);
+                material.SetTexture(ShaderIDTexDisplayed, _textures[markName].Essence);
             }
         }
 
@@ -117,11 +124,11 @@ namespace Plugins
         {
             _textures.Add(markName, new BoneMaps());
 
-            var mapBasic= AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/model/Maps/Guge/{markName}.jpg");
+            var mapBasic = AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/model/Maps/Guge/{markName}.jpg");
             if (mapBasic == null) return;
-            _textures[markName].essence = mapBasic;
+            _textures[markName].Essence = mapBasic;
 
-            for (var i = 1; i <= TypeSum; i++)
+            for (var i = 1; i <= markTypeRange; i++)
             {
                 var mapInvisible = AssetDatabase.LoadAssetAtPath<Texture2D>(
                     $"Assets/model/Maps/bone_mark_maps/{markName}_mark{i}.png"
@@ -131,8 +138,8 @@ namespace Plugins
                 );
 
                 if (mapInvisible == null || mapDisplayed == null) continue;
-                _textures[markName].invisible[i] = mapInvisible;
-                _textures[markName].displayed[i] = mapDisplayed;
+                _textures[markName].Invisible[i] = mapInvisible;
+                _textures[markName].Displayed[i] = mapDisplayed;
             }
         }
 
@@ -171,7 +178,14 @@ namespace Plugins
             fileStream.Close();
         }
 
-        public bool FindBonemarkData(Transform chickedModel, Vector2 uv, out Bonemark bonemark)
+        ///<summary>
+        /// 查找当前点击位置的标志
+        /// </summary>
+        /// <param name="chickedModel">当前点击的对象</param>
+        /// <param name="uv">鼠标位置的uv</param>
+        /// <param name="bonemark">输出Bonemark实例</param>
+        /// <returns>是否成功获取Bonemark</returns>
+        public bool FindBonemarkData(GameObject chickedModel, Vector2 uv, out Bonemark bonemark)
         {
             bonemark = null;
 
@@ -184,9 +198,7 @@ namespace Plugins
             {
                 bonemark = new Bonemark
                 {
-                    type = markType,
-                    name = body.Name,
-                    planeValue = body.Value
+                    type = markType, name = body.Name, planeValue = body.Value
                 };
                 return true;
             }
@@ -215,7 +227,7 @@ namespace Plugins
             if (255 - r < 5 && 255 - g < 5 && 255 - b < 5)
                 return false;
 
-            bonemark = new Bonemark
+            bonemark = new()
             {
                 type = markType,
                 value = body.Value,

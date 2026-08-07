@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Editor.PrefabEditor;
 
 namespace Editor
@@ -17,8 +16,7 @@ namespace Editor
         {
             var newRenderer = new RendererWrapper
             {
-                value = oldRenderer.value,
-                materials = new List<MaterialWrapper>()
+                value = oldRenderer.value, materials = new()
             };
 
             foreach (var oldMaterial in oldRenderer.materials)
@@ -31,11 +29,10 @@ namespace Editor
 
         private MaterialWrapper ConvertMaterial(MaterialWrapper oldMaterial)
         {
-            return new MaterialWrapper
+            return new()
             {
-                name = ConvertName(oldMaterial.name),
-                albe = ConvertName(oldMaterial.albe),
-                normal = ConvertName(oldMaterial.normal)
+                name = ConvertName(oldMaterial.name), albe = ConvertName(oldMaterial.albe)
+                , normal = ConvertName(oldMaterial.normal)
             };
         }
 
