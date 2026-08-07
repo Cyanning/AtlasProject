@@ -27,7 +27,7 @@ namespace Plugins.models
     public class Bones
     {
         public int gender;
-        public string[] family;
+        public int[] family;
         public List<Bonemark> bonemarks;
 
         public void GetMarksFromOrm(IEnumerable<Bonemarks> marksData)
@@ -55,7 +55,7 @@ namespace Plugins.models
 
         protected override string GetDefaultAssetName(Bones item)
         {
-            return item.family[0];
+            return item.family[0].ToString();
         }
 
         private static readonly BoneFactory Instance = new();

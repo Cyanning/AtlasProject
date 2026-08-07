@@ -24,10 +24,10 @@ namespace Editor
             // 获取当前显示的模型数据
             var bodysForActive = PrefabCollection.EncodetModelActive();
             _bone.gender = bodysForActive.gender;
-            _bone.family = bodysForActive.ValuesAsStr();
+            _bone.family = bodysForActive.ValuesAsInt();
 
             _boneFileName =
-                CommonParentFinder.Find(_bone.family, out var commonParent)
+                CommonParentFinder.Find(bodysForActive.ValuesAsStr(), out var commonParent)
                     ? commonParent.name
                     : "";
         }

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
-using JetBrains.Annotations;
 using Plugins.models;
 
 namespace Plugins
@@ -10,19 +10,21 @@ namespace Plugins
     {
         public string fileName;
 
-        [CanBeNull] private Bonemark _bonemark; // 上一个点击的骨标
+        private Bonemark _bonemark; // 当前点击的骨标
         private Bones _bones; // 缓存的骨标集合
+        private int _currentIndex;
+        private AnatomyDatabase _data;
 
         private Text _activeInfo; // 信息框文字
         private MainCameraContraller _camCtrl; // 封装的相机对象
         private BoneMarkManager _boneMarkManager; // 骨性标志控制脚本
 
+        public string[] ModelDisplayed => _bones.family.Select(val => val.ToString()).ToArray();
+        public int ModelGender => _bones.gender;
+
         private static readonly HashSet<string> ValidRoots = new()
         {
-            "BodyMaleStatic(Clone)",
-            "BodyFemaleStatic(Clone)",
-            "ForamensMale(Clone)",
-            "ForamensFemale(Clone)"
+            "BodyMaleStatic(Clone)", "BodyFemaleStatic(Clone)", "ForamensMale(Clone)", "ForamensFemale(Clone)"
         };
 
         private void Awake()
@@ -32,6 +34,7 @@ namespace Plugins
             {
                 Debug.LogWarning("Bone Not Found!");
             }
+            _data = new();
         }
 
         private void Start()
@@ -46,6 +49,9 @@ namespace Plugins
                 var userInterface = transform.GetChild(i);
                 switch (userInterface.name)
                 {
+                    case "LoadingMarksBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(LoadingMarksData);
+                        break;
                     case "ChangeBonesBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(_boneMarkManager.SettingBonemarkMode);
                         break;
@@ -68,9 +74,6 @@ namespace Plugins
             UpdateActiveInfo();
         }
 
-        public string[] ModelDisplayed => _bones.family;
-        public int ModelGender => _bones.gender;
-
         // 创建一个新骨性标注缓存
         public void ClickRespond(Transform clickedModel)
         {
@@ -84,6 +87,11 @@ namespace Plugins
             )
                 UpdateActiveInfo("新建：\n");
             UpdateActiveInfo();
+        }
+
+        private void LoadingMarksData()
+        {
+            _bones.GetMarksFromOrm(_data.FindAllBonemarks(_bones.family, _boneMarkManager.markType));
         }
 
         private void AddBonemarks()

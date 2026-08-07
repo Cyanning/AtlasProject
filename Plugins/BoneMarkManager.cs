@@ -18,7 +18,7 @@ namespace Plugins
     public class BoneMarkManager : MonoBehaviour
     {
         public int markType;
-        private const int markTypeRange = 4;
+        private const int MarkTypeRange = 4;
 
         private ClickEvent _clickEvent;
 
@@ -55,7 +55,7 @@ namespace Plugins
 
         public void SettingBonemarkMode()
         {
-            if (markType < markTypeRange)
+            if (markType < MarkTypeRange)
             {
                 markType++;
 
@@ -128,7 +128,7 @@ namespace Plugins
             if (mapBasic == null) return;
             _textures[markName].Essence = mapBasic;
 
-            for (var i = 1; i <= markTypeRange; i++)
+            for (var i = 1; i <= MarkTypeRange; i++)
             {
                 var mapInvisible = AssetDatabase.LoadAssetAtPath<Texture2D>(
                     $"Assets/model/Maps/bone_mark_maps/{markName}_mark{i}.png"
