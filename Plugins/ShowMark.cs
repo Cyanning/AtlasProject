@@ -5,7 +5,6 @@ using System.Linq;
 using System.Runtime.Serialization.Json;
 using System.IO;
 using System.Text;
-using UnityEditor;
 using Plugins.models;
 
 namespace Plugins
@@ -332,11 +331,6 @@ namespace Plugins
         {
             if (downMarkImgs != null && downMarkImgs.Count > 0)
             {
-                if (ClickEvent.TEST_PLUGIN)
-                {
-                    EditorUtility.DisplayProgressBar("提示", "贴图下载中……", 0f);
-                }
-
                 List<string> downloadUrl = new List<string>();
                 foreach (KeyValuePair<string, string> item in downMarkImgs)
                 {
@@ -360,9 +354,6 @@ namespace Plugins
         {
             if (ClickEvent.TEST_PLUGIN)
             {
-                EditorUtility.DisplayProgressBar("提示", "贴图下载完成", 1f);
-                EditorUtility.ClearProgressBar();
-
                 ChangeBoneMarkWithType(markType);
             }
             else

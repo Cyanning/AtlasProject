@@ -62,13 +62,13 @@ namespace Plugins
             var placeholders = string.Join(",", Enumerable.Repeat("?", valueArray.Length));
 
             // 参数
-            var arguments = new int[valueArray.Length + 1];
+            var arguments = new object[valueArray.Length + 1];
             arguments[0] = markType;
             for (var i = 0; i < valueArray.Length; i++)
                 arguments[i + 1] = valueArray[i];
 
             return _db.Query<Bonemarks>(
-                $"SELECT * FROM Bonemarks WHERE type=? AND value IN ({placeholders})", arguments
+                $"SELECT * FROM bone_marks WHERE type=? AND value IN ({placeholders})", arguments
             ).ToArray();
         }
     }

@@ -2,7 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace Plugins.ImageCaptureTool
+namespace Editor.ImageCaptureTool
 {
     public class ImageCaptureToolEditor : EditorWindow
     {

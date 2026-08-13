@@ -4,7 +4,6 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEditor;
 using Plugins.models.orm;
 
 namespace Plugins.models
@@ -16,6 +15,10 @@ namespace Plugins.models
         public readonly int Value;
 
         public static BodyStruct Default => new(0, string.Empty);
+
+        public int GenderNum => (Value < 1000000 ? Value / 1000 : Value / 10000) % 10;
+
+        public int SystemNum => (Value < 1000000 ? Value / 10000 : Value / 100000) - 10;
 
         public BodyStruct(int value, string name)
         {
@@ -90,16 +93,6 @@ namespace Plugins.models
         {
             return string.IsNullOrEmpty(Name) ? $"{Value}" : $"{Name}~{Value}";
         }
-
-        public int GenderNum()
-        {
-            return (Value < 1000000 ? Value / 1000 : Value / 10000) % 10;
-        }
-
-        public int SystemNum()
-        {
-            return (Value < 1000000 ? Value / 10000 : Value / 100000) - 10;
-        }
     }
 
     [Serializable]
@@ -114,18 +107,17 @@ namespace Plugins.models
         public BodyStructWrapper(int gender, IEnumerable elements)
         {
             this.gender = gender;
-            this.elements = new();
+            this.elements = new List<BodyStruct>();
 
             foreach (var e in elements)
             {
                 this.elements.Add(
                     e switch
                     {
-                        int num => new(num),
-                        string str => new(str),
-                        Info tab => new(tab.Value, tab.Name),
-                        BodyStruct obj => obj,
-                        _ => throw new NotSupportedException()
+                        int num => new BodyStruct(num),
+                        string str => new BodyStruct(str),
+                        Info tab => new BodyStruct(tab.Value, tab.Name),
+                        BodyStruct obj => obj, _ => throw new NotSupportedException()
                     }
                 );
             }
@@ -133,9 +125,7 @@ namespace Plugins.models
 
         public static BodyStructWrapper Load(string path)
         {
-            var jsonContent = path.StartsWith("Assets")
-                ? AssetDatabase.LoadAssetAtPath<TextAsset>(path).text
-                : File.ReadAllText(path);
+            var jsonContent = File.ReadAllText(path);
             return JsonUtility.FromJson<BodyStructWrapper>(jsonContent);
         }
 

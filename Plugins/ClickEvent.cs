@@ -153,7 +153,6 @@ namespace Plugins
                 gameObject.AddComponent<StandaloneInputModule>();
             }
 
-
             SetAssetsPath(TestGetData.TEST_NEW_RESOURCE_PATH);
             SetModelPath(
                 GameObject.FindGameObjectWithTag("GameController").GetComponent<ICanvasEditor>().ModelGender == 1
@@ -205,7 +204,6 @@ namespace Plugins
             //string animateTest = "{\"model_name\":\"2-5_shouzhi_ququ\",\"device_type\":\"IOS\",\"camera_position_x\":244.3,\"camera_position_y\":36.6,\"camera_position_z\":191,\"camera_rotation_x\":3.705,\"camera_rotation_y\":-127.626,\"camera_rotation_z\":-0.274}";
             //StartDownLoadForShow(animateTest);
         }
-
 
         //通过传过来的模型地址，判断对应预制体的名字
         private void DefineModelName(string url)

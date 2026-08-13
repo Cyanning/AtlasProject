@@ -9,19 +9,19 @@ namespace Plugins
     public class TestGetData : MonoBehaviour
     {
         public static string TEST_RESOURCE_PATH =
-            Path.Combine(Application.dataPath, "StreamingAssets", "Test", "resource_ab");
+            Path.Combine(Application.dataPath, "StreamingAssets", "Windows", "resource_ab");
 
         public static string TEST_MODEL_PATH =
-            Path.Combine(Application.dataPath, "StreamingAssets", "Test", "encypt_body_male");
+            Path.Combine(Application.dataPath, "StreamingAssets", "Windows", "encypt_body_male");
 
         public static string TEST_NEW_RESOURCE_PATH =
-            Path.Combine(Application.dataPath, "StreamingAssets", "Test", "resource_ab");
+            Path.Combine(Application.dataPath, "StreamingAssets", "Windows", "resource_ab");
 
         public static string TEST_NEW_MODEL_MALE_PATH =
-            Path.Combine(Application.dataPath, "StreamingAssets", "Test", "encypt_body_male_static");
+            Path.Combine(Application.dataPath, "StreamingAssets", "Windows", "encypt_body_male_static");
 
         public static string TEST_NEW_MODEL_FEMALE_PATH =
-            Path.Combine(Application.dataPath, "StreamingAssets", "Test", "encypt_body_female_static");
+            Path.Combine(Application.dataPath, "StreamingAssets", "Windows", "encypt_body_female_static");
 
         public Dictionary<string, string> AllObject;
         string nowValue = "";

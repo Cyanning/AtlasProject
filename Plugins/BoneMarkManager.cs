@@ -1,34 +1,80 @@
+using System;
 using UnityEngine;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using Plugins.models;
+// #if UNITY_EDITOR
 using UnityEditor;
-
+// #endif
 
 namespace Plugins
 {
-    internal sealed class BoneMaps
+    internal static class BoneAssets
     {
-        public Texture2D Essence;
-        public readonly Dictionary<int, Texture2D> Invisible = new();
-        public readonly Dictionary<int, Texture2D> Displayed = new();
+        public static string GetForamensAbPath(int gender)
+        {
+            var foramenname = gender == 1 ? "foramensfemale" : "foramensmale";
+            return Path.Combine(Application.dataPath, $"StreamingAssets/Windows/encypt_{foramenname}");
+        }
+
+        public static Shader GetShader(string shaderName)
+        {
+// #if UNITY_EDITOR
+            return AssetDatabase.LoadAssetAtPath<Shader>($"Assets/model/Shader/{shaderName}.shader");
+// #endif
+        }
+
+        public static Texture2D GetGugeOriginTexture(string textureName)
+        {
+// #if UNITY_EDITOR
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(
+                $"Assets/model/Maps/Guge/{textureName}.jpg"
+            );
+// #endif
+        }
+
+        public static Texture2D GetBonemarkTexture(string textureName)
+        {
+// #if UNITY_EDITOR
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(
+                $"Assets/model/Maps/bonemark_maps/{textureName}.png"
+            );
+// #endif
+        }
+    }
+
+    internal sealed class BoneMaterial
+    {
+        public readonly Material Mat;
+        public Texture2D Origin;
+        public readonly Texture2D[] Identifier;
+        public readonly Texture2D[] Surface;
+
+        public BoneMaterial(Material mat, int markKindsSum)
+        {
+            Mat = mat;
+            Origin = null;
+            Identifier = new Texture2D[markKindsSum];
+            Surface = new Texture2D[markKindsSum];
+        }
     }
 
     public class BoneMarkManager : MonoBehaviour
     {
-        public int markType;
-        private const int MarkTypeRange = 4;
-
         private ClickEvent _clickEvent;
 
+        // 类型区分
+        private const int MarkTypeRange = 4;
+        public int MarkType { get; private set; }
+
         // 孔洞资源
-        private AssetBundle _foramensAsset;
         private GameObject _foramens;
 
         // 缓存模型贴图数据 方便来回切换
-        private Material[] _materialChanged;
-        private Dictionary<string, BoneMaps> _textures;
+        private BoneMaterial[] _materials;
+        private Shader _originShader;
+        private Shader _markShader;
 
         // 着色器属性
         // private static readonly int ShaderIDUvx = Shader.PropertyToID("_uvx");
@@ -36,136 +82,158 @@ namespace Plugins
         private static readonly int ShaderIDBgcolor = Shader.PropertyToID("bs");
         private static readonly int ShaderIDTranslucent = Shader.PropertyToID("_bskg");
         private static readonly int ShaderIDTexDisplayed = Shader.PropertyToID("_albe");
-        private static readonly int ShaderIDTexInvisible = Shader.PropertyToID("_zzao");
+        private static readonly int ShaderIDTexIdentifier = Shader.PropertyToID("_zzao");
 
-        private static readonly string[] ForamenPathes =
-        {
-            "StreamingAssets/Test/encypt_foramensmale", "StreamingAssets/Test/encypt_foramensfemale"
-        };
-
-        private static readonly string[] ForamenNames =
-        {
-            "ForamensMale", "ForamensFemale"
-        };
+        private static readonly string[] ForamenNames = { "ForamensMale", "ForamensFemale" };
 
         private void Start()
         {
             _clickEvent = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<ClickEvent>();
+            _originShader = BoneAssets.GetShader("aseop");
+            _markShader = BoneAssets.GetShader("ame3");
         }
 
-        public void SettingBonemarkMode()
+        /// <summary>
+        /// 循环设置当前骨性标志类型
+        /// </summary>
+        public void SwitchBonemarkMode()
         {
-            if (markType < MarkTypeRange)
+            MarkType += MarkType < MarkTypeRange ? 1 : -MarkTypeRange;
+        }
+
+        public void SetBonemark()
+        {
+            if (_materials == null || _materials.Length == 0)
             {
-                markType++;
+                CacheMaterials();
+            }
 
-                if (_materialChanged == null || _materialChanged.Length == 0) GetMaterialChanged();
-                ChangeMapsForBone();
+            ChangeTextures();
 
-                if (markType == 1 && _foramens == null) LoadForamens();
+            if (MarkType == 1)
+            {
+                LoadForamens();
+            }
+            else if (_foramens != null)
+            {
+                Destroy(_foramens);
+            }
+        }
+
+        /// <summary>
+        /// 缓存所有材质
+        /// </summary>
+        private void CacheMaterials()
+        {
+            // 获取当前所有骨骼的材质球
+            var materialsWithName = new Dictionary<string, Material>();
+            foreach (var obj in _clickEvent.mObj.GetComponentsInChildren<Transform>())
+            {
+                if (obj.childCount > 0 || !BodyStruct.GetFromPrefab(obj.name, out var body) || body.SystemNum != 0)
+                    continue;
+
+                var material = obj.GetComponent<Renderer>().sharedMaterial;
+                if (material == null) continue;
+
+                materialsWithName.TryAdd(material.name, material);
+            }
+
+            if (materialsWithName.Count == 0) return;
+
+            // 获取当前材质球信息
+            var materials = new List<BoneMaterial>();
+            foreach (var mat in materialsWithName.Values)
+            {
+                // 缓存材质文件
+                var bnMat = new BoneMaterial(mat, MarkTypeRange);
+                if (bnMat.Mat == null)
+                    throw new ArgumentException($"传入的{nameof(bnMat)}的Mat属性为空");
+
+                // 缓存默认贴图
+                var markName = mat.name;
+                if (bnMat.Mat.name == _originShader.name)
+                {
+                    bnMat.Origin = bnMat.Mat.GetTexture(ShaderIDTexDisplayed) as Texture2D;
+                }
+                else
+                {
+                    bnMat.Origin = BoneAssets.GetGugeOriginTexture(markName);
+                }
+
+                // 缓存标志贴图
+                for (var i = 0; i < MarkTypeRange; i++)
+                {
+                    bnMat.Identifier[i] = BoneAssets.GetBonemarkTexture($"{markName}_mark{i + 1}");
+                    bnMat.Surface[i] = BoneAssets.GetBonemarkTexture($"{markName}_mark{i + 1}_cover");
+                }
+
+                materials.Add(bnMat);
+            }
+
+            _materials = materials.ToArray();
+        }
+
+        /// <summary>
+        /// 切换贴图
+        /// </summary>
+        private void ChangeTextures()
+        {
+            if (MarkType == 0)
+            {
+                foreach (var material in _materials)
+                {
+                    var mat = material.Mat;
+                    mat.shader = _originShader;
+                    mat.SetTexture(ShaderIDTexDisplayed, material.Origin);
+                }
             }
             else
             {
-                markType = 0;
-                RecoverMapsForBone();
+                var textureIndex = MarkType - 1;
+                foreach (var material in _materials)
+                {
+                    var mat = material.Mat;
+                    mat.shader = _markShader;
+                    mat.SetColor(ShaderIDBgcolor, Color.white);
+                    mat.SetInt(ShaderIDTranslucent, 1);
+                    mat.SetTexture(ShaderIDTexDisplayed, material.Surface[textureIndex]);
+                    mat.SetTexture(ShaderIDTexIdentifier, material.Identifier[textureIndex]);
+                }
             }
         }
 
-        private void GetMaterialChanged()
-        {
-            var materials = new HashSet<Material>();
-            foreach (var obj in _clickEvent.mObj.GetComponentsInChildren<Transform>())
-            {
-                if (obj.childCount > 0 || !obj.name.Contains("~10")) continue;
-                var material = obj.GetComponent<Renderer>().material;
-
-                if (!material.name.StartsWith("Guge")) continue;
-                materials.Add(material);
-            }
-
-            if (materials.Count == 0) return;
-            _materialChanged = materials.ToArray();
-            _textures = new();
-        }
-
-        private void ChangeMapsForBone()
-        {
-            foreach (var material in _materialChanged)
-            {
-                var markName = GetMarkName(material);
-                if (!_textures.ContainsKey(markName)) GetSeriesMapsforMaterial(markName);
-
-                material.shader.name = "ame3";
-                material.SetColor(ShaderIDBgcolor, Color.white);
-                material.SetInt(ShaderIDTranslucent, 1);
-                material.SetTexture(ShaderIDTexInvisible, _textures[markName].Invisible[markType]);
-                material.SetTexture(ShaderIDTexDisplayed, _textures[markName].Displayed[markType]);
-            }
-        }
-
-        private void RecoverMapsForBone()
-        {
-            foreach (var material in _materialChanged)
-            {
-                var markName = GetMarkName(material);
-                if (!_textures.ContainsKey(markName)) GetSeriesMapsforMaterial(markName);
-
-                material.shader.name = "ameop";
-                material.SetTexture(ShaderIDTexDisplayed, _textures[markName].Essence);
-            }
-        }
-
-        private static string GetMarkName(Object material)
-        {
-            return material.name.EndsWith(" (Instance)") ? material.name[..^11] : material.name;
-        }
-
-        private void GetSeriesMapsforMaterial(string markName)
-        {
-            _textures.Add(markName, new BoneMaps());
-
-            var mapBasic = AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/model/Maps/Guge/{markName}.jpg");
-            if (mapBasic == null) return;
-            _textures[markName].Essence = mapBasic;
-
-            for (var i = 1; i <= MarkTypeRange; i++)
-            {
-                var mapInvisible = AssetDatabase.LoadAssetAtPath<Texture2D>(
-                    $"Assets/model/Maps/bone_mark_maps/{markName}_mark{i}.png"
-                );
-                var mapDisplayed = AssetDatabase.LoadAssetAtPath<Texture2D>(
-                    $"Assets/model/Maps/bone_mark_maps/{markName}_mark{i}_cover.png"
-                );
-
-                if (mapInvisible == null || mapDisplayed == null) continue;
-                _textures[markName].Invisible[i] = mapInvisible;
-                _textures[markName].Displayed[i] = mapDisplayed;
-            }
-        }
-
+        /// <summary>
+        /// 加载孔洞模型
+        /// </summary>
         private void LoadForamens()
         {
             var canvas = gameObject.GetComponent<ICanvasEditor>();
-            var fileStream = new MyStream(
-                Path.Combine(Application.dataPath, ForamenPathes[canvas.ModelGender]),
-                FileMode.Open, FileAccess.Read, FileShare.None, 1024 * 64, false
+
+            using var fileStream = new MyStream(
+                BoneAssets.GetForamensAbPath(canvas.ModelGender),
+                FileMode.Open, FileAccess.Read, FileShare.None,
+                1024 * 64, false
             );
 
-            _foramensAsset = AssetBundle.LoadFromStream(fileStream);
-
-            _foramens = Instantiate(_foramensAsset.LoadAsset<GameObject>(ForamenNames[canvas.ModelGender]));
+            var foramensAb = AssetBundle.LoadFromStream(fileStream);
+            _foramens = Instantiate(foramensAb.LoadAsset<GameObject>(ForamenNames[canvas.ModelGender]));
             _foramens.transform.position = _clickEvent.mObj.transform.position;
             _foramens.transform.rotation = _clickEvent.mObj.transform.rotation;
             _foramens.transform.localScale = _clickEvent.mObj.transform.localScale;
+            foramensAb.Unload(false);
 
-            foreach (var foramen in _foramens.gameObject.GetComponentsInChildren<Transform>())
+            foreach (var foramen in _foramens.GetComponentsInChildren<Transform>())
             {
-                if (foramen.childCount > 0 || foramen.name[^8..^5] != "~22") continue;
+                if (
+                    foramen.childCount > 0
+                    || !BodyStruct.GetFromPrefab(foramen.name, out var body)
+                    || body.SystemNum != 12
+                ) continue;
 
-                var modelValue = foramen.name[^7..];
-                if (canvas.ModelDisplayed.Contains(modelValue))
+                var value = body.Value.ToString();
+                if (canvas.ModelDisplayed.Contains(value))
                 {
-                    _clickEvent.AllObject.Add(modelValue, foramen.gameObject);
+                    _clickEvent.AllObject.Add(value, foramen.gameObject);
                 }
                 else
                 {
@@ -174,8 +242,6 @@ namespace Plugins
 
                 _clickEvent.AddObjectClickEvent(foramen.gameObject);
             }
-
-            fileStream.Close();
         }
 
         ///<summary>
@@ -189,29 +255,37 @@ namespace Plugins
         {
             bonemark = null;
 
+            // 不在骨性标志状态固定返回false
+            if (MarkType == 0)
+            {
+                return false;
+            }
+
             // 检测预制体是否合法
             if (!BodyStruct.GetFromPrefab(chickedModel.name, out var body))
                 return false;
 
-            // 判断是否是孔洞虚拟模型
-            if (body.Name.StartsWith("foramens_"))
+            // 判断是否是孔洞模型
+            if (body.SystemNum == 12)
             {
                 bonemark = new Bonemark
                 {
-                    type = markType, name = body.Name, planeValue = body.Value
+                    type = MarkType, name = body.Name, planeValue = body.Value
                 };
                 return true;
             }
 
-            // 检测是否是骨性标志shader
+            // 检测shader
             if (!chickedModel.TryGetComponent(out Renderer render))
                 return false;
+
+            // 检测是否是骨性标志shader
             var material = render.material;
             if (material == null || material.shader.name != "ame3")
                 return false;
 
             // 是否能拿到骨性标志贴图
-            var tex = material.GetTexture(ShaderIDTexInvisible) as Texture2D;
+            var tex = material.GetTexture(ShaderIDTexIdentifier) as Texture2D;
             if (tex == null)
                 return false;
 
@@ -227,14 +301,9 @@ namespace Plugins
             if (255 - r < 5 && 255 - g < 5 && 255 - b < 5)
                 return false;
 
-            bonemark = new()
+            bonemark = new Bonemark
             {
-                type = markType,
-                value = body.Value,
-                name = body.Name,
-                color = $"{r},{g},{b}",
-                uvx = uv.x,
-                uvy = uv.y
+                type = MarkType, value = body.Value, color = $"{r},{g},{b}", uvx = uv.x, uvy = uv.y
             };
 
             return true;

@@ -1,14 +1,13 @@
 using System;
 using System.IO;
 using System.Text;
-using UnityEditor;
 using UnityEngine;
 
 namespace Plugins.models
 {
     public abstract class TextAssetFactory<T> where T : class
     {
-        protected virtual string DatabaseFolder => "Atlas_database";
+        protected virtual string RootFolder => "TemporaryFiles";
         protected virtual string FilePrefix => "";
         protected virtual string FileExtension => ".json";
         protected virtual Encoding FileEncoding => Encoding.UTF8;
@@ -31,7 +30,9 @@ namespace Plugins.models
                 throw new ArgumentException("Asset name is empty.", nameof(assetName));
             }
 
-            var assetsFolder = Path.Combine("Assets", DatabaseFolder, Path.GetDirectoryName(assetName) ?? "");
+            var assetsFolder = Path.Combine(
+                Application.dataPath, RootFolder, Path.GetDirectoryName(assetName) ?? ""
+            );
 
             if (!Directory.Exists(assetsFolder) && autoCreate)
             {
@@ -50,14 +51,14 @@ namespace Plugins.models
 
         protected bool LoadAsset(string assetName, out T item)
         {
-            var asset = AssetDatabase.LoadAssetAtPath<TextAsset>(CurrentAssetPath(assetName));
-            if (asset is null)
+            var assetText = File.ReadAllText(CurrentAssetPath(assetName));
+            if (string.IsNullOrEmpty(assetText))
             {
                 item = null;
                 return false;
             }
 
-            item = JsonUtility.FromJson<T>(asset.text);
+            item = JsonUtility.FromJson<T>(assetText);
             return true;
         }
 
@@ -74,7 +75,7 @@ namespace Plugins.models
             ApplyUniformName(Path.GetFileNameWithoutExtension(assetPath), item);
 
             File.WriteAllText(Path.GetFullPath(assetPath), JsonUtility.ToJson(item), FileEncoding);
-            AssetDatabase.ImportAsset(assetPath);
+            // AssetDatabase.ImportAsset(assetPath);
         }
     }
 }

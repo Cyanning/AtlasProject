@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using UnityEngine;
 
-namespace Plugins.ImageCaptureTool
+namespace Editor.ImageCaptureTool
 {
     public static class ImageCaptureTool
     {

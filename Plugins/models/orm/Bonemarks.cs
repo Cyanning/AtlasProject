@@ -2,7 +2,7 @@ using SQLite;
 
 namespace Plugins.models.orm
 {
-    [Table("Bonemarks")]
+    [Table("bone_marks")]
     public class Bonemarks
     {
         [Column("id")] public int Id { get; set; }

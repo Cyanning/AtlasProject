@@ -3,7 +3,7 @@ using UnityEngine;
 using Plugins.models;
 using Editor.PrefabEditor;
 
-namespace Editor
+namespace Editor.BonemarkEditor
 {
     public class BonemarkFormMarker : EditorWindow
     {

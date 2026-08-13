@@ -79,7 +79,7 @@ namespace Plugins
                         userInterface.GetComponent<Button>().onClick.AddListener(SaveAtlasItemCarmera);
                         break;
                     case "ChangeBonesBtn":
-                        userInterface.GetComponent<Button>().onClick.AddListener(_boneMarkManager.SettingBonemarkMode);
+                        userInterface.GetComponent<Button>().onClick.AddListener(SwitchBonemark);
                         break;
                     case "AtlasInfo":
                         _atlasInfo = userInterface.GetComponent<Text>();
@@ -110,7 +110,7 @@ namespace Plugins
             {
                 var prefabNames = clickedModel.name.Split("~");
                 var timestamp = new DateTimeOffset(DateTime.Now).ToUnixTimeMilliseconds();
-                _activeLabel = new()
+                _activeLabel = new AtlasLabel
                 {
                     name = prefabNames[0] + "_" + timestamp.ToString()[^4..],
                     value = Convert.ToInt32(prefabNames[1]),
@@ -121,7 +121,7 @@ namespace Plugins
                 UpdateActiveInfo();
             }
 
-            if (_boneMarkManager.markType != 0 && _camCtrl.GetTextureUv(out var uv))
+            if (_boneMarkManager.MarkType != 0 && _camCtrl.GetTextureUv(out var uv))
             {
                 if (_boneMarkManager.FindBonemarkData(clickedModel.gameObject, uv, out var bonemark))
                 {
@@ -250,6 +250,12 @@ namespace Plugins
             _activeLabel = null;
             UpdateActiveInfo("图谱存储成功");
             UpdateAtlasInfo();
+        }
+
+        private void SwitchBonemark()
+        {
+            _boneMarkManager.SwitchBonemarkMode();
+            _boneMarkManager.SetBonemark();
         }
 
         // 更新显示的数据

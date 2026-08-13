@@ -251,13 +251,13 @@ namespace Plugins
                 Debug.Log(">>>>>>>>>>>Z:" + vector.z);
                 if (markList.Count > dataList.Count)
                 {
-                    UnityEditor.EditorUtility.DisplayDialog("请先保存上个针的数据", "请先保存上个针的数据", "确认", "取消");
+                    // UnityEditor.EditorUtility.DisplayDialog("请先保存上个针的数据", "请先保存上个针的数据", "确认", "取消");
 
 
                 }
                 else
                 {
-                    UnityEditor.EditorUtility.DisplayDialog("添加新针", "x:" + vector.x + "\n y:" + vector.y + "\n z:" + vector.z, "确认", "取消");
+                    // UnityEditor.EditorUtility.DisplayDialog("添加新针", "x:" + vector.x + "\n y:" + vector.y + "\n z:" + vector.z, "确认", "取消");
                     GameObject mark = (GameObject)Instantiate(Resources.Load("mark/zhongdian"));
                     mark.transform.position = vector;
                     mark.transform.localScale = new Vector3(0.001f, 0.001f, 0.001f);
@@ -286,7 +286,7 @@ namespace Plugins
                 Debug.Log(">>>>>>>>>>>Z:" + vector.z);
                 if (markList.Count > dataList.Count)
                 {
-                    UnityEditor.EditorUtility.DisplayDialog("请先保存上个针的数据", "请先保存上个针的数据", "确认", "取消");
+                    // UnityEditor.EditorUtility.DisplayDialog("请先保存上个针的数据", "请先保存上个针的数据", "确认", "取消");
 
 
                 }
@@ -297,7 +297,7 @@ namespace Plugins
                     //0.02321759
                     //0.3847193
                     Debug.Log($"distance = {distance}");
-                    UnityEditor.EditorUtility.DisplayDialog("添加新针", "x:" + vector.x + "\n y:" + vector.y + "\n z:" + vector.z, "确认", "取消");
+                    // UnityEditor.EditorUtility.DisplayDialog("添加新针", "x:" + vector.x + "\n y:" + vector.y + "\n z:" + vector.z, "确认", "取消");
                     GameObject mark = (GameObject)Instantiate(Resources.Load("mark/qidian"));
                     mark.transform.position = vector;
                     mark.transform.localScale = new Vector3(0.001f, 0.001f, 0.001f);
@@ -320,7 +320,7 @@ namespace Plugins
 
             if (markList.Count > 0)
             {
-                UnityEditor.EditorUtility.DisplayDialog("已删除上一个", "", "确认", "取消");
+                // UnityEditor.EditorUtility.DisplayDialog("已删除上一个", "", "确认", "取消");
                 GameObject.Destroy(markList[markList.Count - 1]);
                 if (markList.Count == dataList.Count)
                 {
@@ -348,13 +348,13 @@ namespace Plugins
             {
                 if (markList.Count <= dataList.Count)
                 {
-                    UnityEditor.EditorUtility.DisplayDialog("上一个已经保存过了", "上一个已经保存过了", "确认", "取消");
+                    // UnityEditor.EditorUtility.DisplayDialog("上一个已经保存过了", "上一个已经保存过了", "确认", "取消");
 
                 }
                 else
                 {
 
-                    UnityEditor.EditorUtility.DisplayDialog("已保存上一个", "保存成功！", "确认", "取消");
+                    // UnityEditor.EditorUtility.DisplayDialog("已保存上一个", "保存成功！", "确认", "取消");
                     GameObject lastObj = markList[markList.Count - 1];
                     string type = "";
 
@@ -388,7 +388,7 @@ namespace Plugins
             {
                 string exportFilePath = $"{showModel}.txt";
 
-                UnityEditor.EditorUtility.DisplayDialog($"导出数据到项目：anatomy_tools/export/{exportFilePath}", "", "确认", "取消");
+                // UnityEditor.EditorUtility.DisplayDialog($"导出数据到项目：anatomy_tools/export/{exportFilePath}", "", "确认", "取消");
                 string strRes = "[";
                 foreach (string s in dataList)
                 {
@@ -426,7 +426,7 @@ namespace Plugins
                     Transform trans = hit.transform;//得到碰撞点的坐标
 
                     string name = trans.name.Substring( trans.name.LastIndexOf("~")+1);
-                    UnityEditor.EditorUtility.DisplayDialog("得到模型value:" + name, "", "确认", "取消");
+                    // UnityEditor.EditorUtility.DisplayDialog("得到模型value:" + name, "", "确认", "取消");
                     objName = name;
 
             }

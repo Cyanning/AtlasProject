@@ -85,5 +85,12 @@ namespace Editor
             prefabEditor.PrefabStructCopying(origin.transform, target.transform);
         }
 
+        [MenuItem("Customer/设置Read-Write")]
+        // Unity 菜单入口：查找模型根节点并启动树结构比较。
+        public static void SetFileReadable()
+        {
+            AssetFileEditor.SetTextureReadWrite("Assets", @"^.+_mark\d+\.png$");
+        }
+
     }
 }

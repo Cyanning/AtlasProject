@@ -21,6 +21,9 @@ namespace Plugins.models
         public float cameraRotationX;
         public float cameraRotationY;
         public float cameraRotationZ;
+
+        public bool BeForamen => string.IsNullOrEmpty(color) && planeValue > 0;
+        public bool BePainting => !string.IsNullOrEmpty(color) && planeValue == 0;
     }
 
     [Serializable]
@@ -32,11 +35,11 @@ namespace Plugins.models
 
         public void GetMarksFromOrm(IEnumerable<Bonemarks> marksData)
         {
-            bonemarks ??= new();
+            bonemarks ??= new List<Bonemark>();
             foreach (var mark in marksData)
             {
                 bonemarks.Add(
-                    new()
+                    new Bonemark
                     {
                         type = mark.Type, value = mark.Value, color = mark.Color
                         , planeValue = mark.PlaneValue, uvx = mark.Uvx, uvy = mark.Uvy, name = mark.Name
@@ -47,11 +50,25 @@ namespace Plugins.models
                 );
             }
         }
+
+        public int SavingMark(Bonemark newMark, int index=-1)
+        {
+            if (index == -1)
+            {
+                bonemarks.Add(newMark);
+                return bonemarks.Count - 1;
+            }
+
+            newMark.name = bonemarks[index].name;
+            bonemarks[index] = newMark;
+            return index;
+        }
     }
 
     public sealed class BoneFactory : TextAssetFactory<Bones>
     {
         protected override string FilePrefix => "Bonemark_";
+        protected override string RootFolder => "TemporaryFiles/Bonemarks";
 
         protected override string GetDefaultAssetName(Bones item)
         {

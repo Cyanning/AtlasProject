@@ -1,134 +1,73 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using System.IO;
-using System.Text;
 namespace Editor.BuildingABPackage
 {
     public class BuildAssetBundle : MonoBehaviour
     {
-
         //StreamingAssets与Resources的区别在于，StreamingAssets不会被压缩打进包体，而Resources会被压缩
-        public static readonly string RES_OUTPUT_PATH_WINDOW = "Assets/StreamingAssets/Windows";
-        public static readonly string RES_OUTPUT_PATH_AND = "Assets/StreamingAssets/Android";
-        public static readonly string RES_OUTPUT_PATH_IOS = "Assets/StreamingAssets/IOS";
-        public static readonly string RES_OUTPUT_PATH_WEB = "Assets/StreamingAssets/Web";
 
-        public static readonly bool MODEL_TEST = false;
-        private static readonly string TestModelName = "body_male";
+        private const string ResOutputPathAnd = "Assets/StreamingAssets/Android";
+        private const string ResOutputPathIos = "Assets/StreamingAssets/IOS";
+        private const string ResOutputPathWeb = "Assets/StreamingAssets/Web";
+        private const string ResOuputPathWindow = "Assets/StreamingAssets/Windows";
 
-        //MenuItem会在unity菜单栏添加自定义新项
-        [MenuItem("ABPackager/Others/Build AssetBundleWeb")]
-        private static void BuildWeb()
-        {
-            BuildPipeline.BuildAssetBundles(RES_OUTPUT_PATH_WEB, BuildAssetBundleOptions.ChunkBasedCompression, BuildTarget.WebGL);
-        }
-        [MenuItem("ABPackager/Others/Build AssetBundleWindow")]
-        private static void BuildWindow()
-        {
-            BuildPipeline.BuildAssetBundles(RES_OUTPUT_PATH_WINDOW, BuildAssetBundleOptions.ChunkBasedCompression, BuildTarget.StandaloneWindows);
-        }
-
-        [MenuItem("ABPackager/Others/Build AssetBundleIOS")]
-        private static void BuildIos()
-        {
-            BuildPipeline.BuildAssetBundles(RES_OUTPUT_PATH_IOS, BuildAssetBundleOptions.ChunkBasedCompression, BuildTarget.iOS);
-        }
-
-        [MenuItem("ABPackager/Others/Build AssetBundleAndroid")]
-        private static void BuildAndroid()
-        {
-            BuildPipeline.BuildAssetBundles(RES_OUTPUT_PATH_AND, BuildAssetBundleOptions.ChunkBasedCompression, BuildTarget.Android);
-        }
-
-        [MenuItem("ABPackager/BuildEnWebAB")]
-        static void BuildWebAB()
-        {
-
-            var manifest = BuildPipeline.BuildAssetBundles(RES_OUTPUT_PATH_WEB, BuildAssetBundleOptions.ChunkBasedCompression, BuildTarget.WebGL);
-            string[] assetBundles = manifest.GetAllAssetBundles();
-            for (int i = 0; i < assetBundles.Length; i++)
-            {
-                string name = assetBundles[i];
-                Debug.Log("打包 " + name);
-
-                if (MODEL_TEST)
-                {
-                    if (!name.Equals(TestModelName))
-                    {
-                        continue;
-                    }
-                }
-
-                var uniqueSalt = Encoding.UTF8.GetBytes(name);
-                var data = File.ReadAllBytes(Path.Combine(RES_OUTPUT_PATH_WEB, name));
-
-                /*      byte[] newData = new byte[data.Length+99];
-                      data.CopyTo(newData,99);*/
-                using (var myStream = new MyStream(Path.Combine(RES_OUTPUT_PATH_WEB, "encypt_" + name), FileMode.Create))
-                {
-                    myStream.Write(data, 0, data.Length);
-                }
-            }
-           
-            AssetDatabase.Refresh();
-        }
         [MenuItem("ABPackager/BuildEnAndAB")]
-        static void BuildAndAB()
+        private static void BuildAndAb()
         {
-
-            var manifest = BuildPipeline.BuildAssetBundles(RES_OUTPUT_PATH_AND, BuildAssetBundleOptions.ChunkBasedCompression, BuildTarget.Android);
-            string[] assetBundles = manifest.GetAllAssetBundles();
-            for (int i = 0; i < assetBundles.Length;i++) {
-                string name = assetBundles[i];
+            var manifest = BuildPipeline.BuildAssetBundles(
+                ResOutputPathAnd, BuildAssetBundleOptions.ChunkBasedCompression, BuildTarget.Android
+            );
+            foreach (var name in manifest.GetAllAssetBundles())
+            {
                 Debug.Log("打包 " + name);
+                var data = File.ReadAllBytes(Path.Combine(ResOutputPathAnd, name));
 
-                if (MODEL_TEST)
-                {
-                    if (!name.Equals(TestModelName))
-                    {
-                        continue;
-                    }
-                }
+                using var myStream = new MyStream(
+                    Path.Combine(ResOutputPathAnd, "encypt_" + name), FileMode.Create
+                );
+                myStream.Write(data, 0, data.Length);
 
-                var uniqueSalt = Encoding.UTF8.GetBytes(name);
-                var data = File.ReadAllBytes(Path.Combine(RES_OUTPUT_PATH_AND, name));
-
-                using (var myStream = new MyStream(Path.Combine(RES_OUTPUT_PATH_AND, "encypt_" + name), FileMode.Create))
-                {
-                    myStream.Write(data, 0, data.Length);
-                }
             }
-            
+
             AssetDatabase.Refresh();
         }
         [MenuItem("ABPackager/BuildEnIosAB")]
-        static void BuildIosAB()
+        private static void BuildIosAb()
         {
-
-            var manifest = BuildPipeline.BuildAssetBundles(RES_OUTPUT_PATH_IOS, BuildAssetBundleOptions.ChunkBasedCompression, BuildTarget.iOS);
-            string[] assetBundles = manifest.GetAllAssetBundles();
-            for (int i = 0; i < assetBundles.Length; i++)
+            var manifest = BuildPipeline.BuildAssetBundles(
+                ResOutputPathIos, BuildAssetBundleOptions.ChunkBasedCompression, BuildTarget.iOS
+            );
+            foreach (var name in manifest.GetAllAssetBundles())
             {
-                string name = assetBundles[i];
                 Debug.Log("打包 " + name);
+                var data = File.ReadAllBytes(Path.Combine(ResOutputPathIos, name));
 
-                if (MODEL_TEST)
-                {
-                    if (!name.Equals(TestModelName))
-                    {
-                        continue;
-                    }
-                }
+                using var myStream = new MyStream(
+                    Path.Combine(ResOutputPathIos, "encypt_" + name), FileMode.Create
+                );
+                myStream.Write(data, 0, data.Length);
+            }
+            AssetDatabase.Refresh();
+        }
 
-                var uniqueSalt = Encoding.UTF8.GetBytes(name);
-                var data = File.ReadAllBytes(Path.Combine(RES_OUTPUT_PATH_IOS, name));
+        [MenuItem("ABPackager/BuildEnWebAB")]
+        private static void BuildWebAb()
+        {
+            var manifest = BuildPipeline.BuildAssetBundles(
+                ResOutputPathWeb, BuildAssetBundleOptions.ChunkBasedCompression, BuildTarget.WebGL
+            );
 
-                /*      byte[] newData = new byte[data.Length+99];
-                      data.CopyTo(newData,99);*/
-                using (var myStream = new MyStream(Path.Combine(RES_OUTPUT_PATH_IOS, "encypt_" + name), FileMode.Create))
-                {
-                    myStream.Write(data, 0, data.Length);
-                }
+            foreach (var name in manifest.GetAllAssetBundles())
+            {
+                Debug.Log("打包 " + name);
+                var data = File.ReadAllBytes(Path.Combine(ResOutputPathWeb, name));
+
+                using var myStream = new MyStream(
+                    Path.Combine(ResOutputPathWeb, "encypt_" + name), FileMode.Create
+                );
+                myStream.Write(data, 0, data.Length);
+
             }
 
             AssetDatabase.Refresh();
@@ -136,36 +75,22 @@ namespace Editor.BuildingABPackage
 
 
         [MenuItem("ABPackager/BuildEnWindowAB")]
-        static void BuildWindowAB()
+        private static void BuildWindowAb()
         {
+            var manifest = BuildPipeline.BuildAssetBundles(
+                ResOuputPathWindow, BuildAssetBundleOptions.ChunkBasedCompression, BuildTarget.StandaloneWindows64
+            );
 
-            var manifest = BuildPipeline.BuildAssetBundles(RES_OUTPUT_PATH_WINDOW, BuildAssetBundleOptions.ChunkBasedCompression, BuildTarget.StandaloneWindows);
-  
-            string[] assetBundles = manifest.GetAllAssetBundles();
-            for (int i = 0; i < assetBundles.Length; i++)
+            foreach (var name in manifest.GetAllAssetBundles())
             {
-                string name = assetBundles[i];
                 Debug.Log("打包 " + name);
+                var data = File.ReadAllBytes(Path.Combine(ResOuputPathWindow, name));
 
-                if (MODEL_TEST)
-                {
-                    if (!name.Equals(TestModelName))
-                    {
-                        continue;
-                    }
-                }
-
-                var uniqueSalt = Encoding.UTF8.GetBytes(name);
-                var data = File.ReadAllBytes(Path.Combine(RES_OUTPUT_PATH_WINDOW, name));
-
-                /*      byte[] newData = new byte[data.Length+99];
-                      data.CopyTo(newData,99);*/
-                using (var myStream = new MyStream(Path.Combine(RES_OUTPUT_PATH_WINDOW, "encypt_" + name), FileMode.Create))
-                {
-                    myStream.Write(data, 0, data.Length);
-                }
+                using var myStream = new MyStream(
+                    Path.Combine(ResOuputPathWindow, "encypt_" + name), FileMode.Create
+                );
+                myStream.Write(data, 0, data.Length);
             }
-
             AssetDatabase.Refresh();
         }
     }
