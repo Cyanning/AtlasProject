@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using Plugins.models;
+using Plugins.orm.Models;
+
 // #if UNITY_EDITOR
 using UnityEditor;
 // #endif
@@ -65,6 +67,7 @@ namespace Plugins
         private ClickEvent _clickEvent;
 
         // 类型区分
+        private const string BoneShaderName = "ame3";
         private const int MarkTypeRange = 4;
         public int MarkType { get; private set; }
 
@@ -90,7 +93,7 @@ namespace Plugins
         {
             _clickEvent = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<ClickEvent>();
             _originShader = BoneAssets.GetShader("aseop");
-            _markShader = BoneAssets.GetShader("ame3");
+            _markShader = BoneAssets.GetShader(BoneShaderName);
         }
 
         /// <summary>
@@ -251,37 +254,63 @@ namespace Plugins
         /// <param name="uv">鼠标位置的uv</param>
         /// <param name="bonemark">输出Bonemark实例</param>
         /// <returns>是否成功获取Bonemark</returns>
-        public bool FindBonemarkData(GameObject chickedModel, Vector2 uv, out Bonemark bonemark)
+        public bool FindBonemarkData(GameObject chickedModel, Vector2 uv, out Bonemarks bonemark)
         {
             bonemark = null;
 
-            // 不在骨性标志状态固定返回false
+            // 不在骨性标志状态中不执行
             if (MarkType == 0)
             {
                 return false;
             }
 
-            // 检测预制体是否合法
+            // 检测预制体name是否合法
             if (!BodyStruct.GetFromPrefab(chickedModel.name, out var body))
                 return false;
 
-            // 判断是否是孔洞模型
+            // 若为孔洞模型
             if (body.SystemNum == 12)
             {
-                bonemark = new Bonemark
+                bonemark = new Bonemarks
                 {
-                    type = MarkType, name = body.Name, planeValue = body.Value
+                    Type = MarkType, Name = body.Name, PlaneValue = body.Value
                 };
                 return true;
             }
+
+            // 若为骨骼模型
+            if (TryGetColorCode(chickedModel, uv, out var colorCode))
+            {
+                bonemark = new Bonemarks
+                {
+                    Type = MarkType, Value = body.Value, Color = colorCode, Uvx = uv.x, Uvy = uv.y
+                };
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 获取贴图上的色块的颜色值
+        /// </summary>
+        /// <param name="chickedModel">目标模型</param>
+        /// <param name="uv">点位uv</param>
+        /// <param name="colorCode">10进制整数RGB颜色值</param>
+        /// <returns>成功获取？</returns>
+        private static bool TryGetColorCode(GameObject chickedModel, Vector2 uv, out string colorCode)
+        {
+            colorCode = null;
 
             // 检测shader
             if (!chickedModel.TryGetComponent(out Renderer render))
                 return false;
 
-            // 检测是否是骨性标志shader
+            // 不能用共享的材质
             var material = render.material;
-            if (material == null || material.shader.name != "ame3")
+
+            // 检测是否是骨性标志shader
+            if (material == null || material.shader.name != BoneShaderName)
                 return false;
 
             // 是否能拿到骨性标志贴图
@@ -289,24 +318,45 @@ namespace Plugins
             if (tex == null)
                 return false;
 
-            // Todo 设置选中颜色
-
             var color = tex.GetPixel(
                 Mathf.Clamp((int)(uv.x * tex.width), 0, tex.width - 1),
                 Mathf.Clamp((int)(uv.y * tex.height), 0, tex.height - 1)
             );
+
             var r = Mathf.RoundToInt(color.r * 255);
             var g = Mathf.RoundToInt(color.g * 255);
             var b = Mathf.RoundToInt(color.b * 255);
-            if (255 - r < 5 && 255 - g < 5 && 255 - b < 5)
-                return false;
-
-            bonemark = new Bonemark
+            if (255 - r > 5 || 255 - g > 5 || 255 - b > 5)
             {
-                type = MarkType, value = body.Value, color = $"{r},{g},{b}", uvx = uv.x, uvy = uv.y
-            };
+                colorCode = $"{r},{g},{b}";
+                return true;
+            }
 
-            return true;
+            return false;
+        }
+
+        /// <summary>
+        /// 验证boneMark的uv与color数据是否匹配
+        /// </summary>
+        /// <param name="bonemark">必须是有颜色的实例</param>
+        /// <returns>是否匹配</returns>
+        public bool ColorCodeVerification(Bonemarks bonemark)
+        {
+            var models = _clickEvent.mObj.GetComponentsInChildren<Transform>();
+            if (!bonemark.BePainting) return false;
+
+            foreach (var model in models)
+            {
+                if (!BodyStruct.GetFromPrefab(model.name, out var body) || body.Value != bonemark.Value)
+                    continue;
+
+                if (TryGetColorCode(model.gameObject, new Vector2(bonemark.Uvx, bonemark.Uvy), out var color))
+                {
+                    return color == bonemark.Color;
+                }
+            }
+
+            return false;
         }
     }
 }

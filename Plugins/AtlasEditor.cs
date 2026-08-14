@@ -125,7 +125,7 @@ namespace Plugins
             {
                 if (_boneMarkManager.FindBonemarkData(clickedModel.gameObject, uv, out var bonemark))
                 {
-                    Debug.Log(bonemark.color);
+                    Debug.Log(bonemark.Color);
                 }
             }
         }

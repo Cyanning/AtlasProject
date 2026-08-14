@@ -1,6 +1,6 @@
 using SQLite;
 
-namespace Plugins.models.orm
+namespace Plugins.orm.Models
 {
     [Table("info")]
     public class Info

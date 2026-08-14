@@ -4,7 +4,7 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Plugins.models.orm;
+using Plugins.orm.Models;
 
 namespace Plugins.models
 {

@@ -2,9 +2,9 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
-using Plugins;
 using Plugins.models;
-using Plugins.models.orm;
+using Plugins.orm.Servers;
+using Plugins.orm.Models;
 
 namespace Editor.PrefabEditor
 {
@@ -26,7 +26,7 @@ namespace Editor.PrefabEditor
     public class CompareTrees
     {
         private readonly Transform _root;
-        private readonly AnatomyDatabase _data;
+        private readonly InfoServer _data;
 
         private readonly Dictionary<int, TreeNode> _transformNodes = new();
         private readonly Dictionary<int, List<string>> _transformValuePaths = new();
@@ -63,7 +63,7 @@ namespace Editor.PrefabEditor
         private CompareTrees(Transform root)
         {
             _root = root;
-            _data = new AnatomyDatabase();
+            _data = new InfoServer();
         }
         
         // 从 Transform 层级解析 BodyStruct，并建立模型树的 value 索引。

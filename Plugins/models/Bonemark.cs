@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Plugins.models.orm;
+using Plugins.orm.Models;
 
 
 namespace Plugins.models
@@ -42,7 +42,7 @@ namespace Plugins.models
                     new Bonemark
                     {
                         type = mark.Type, value = mark.Value, color = mark.Color
-                        , planeValue = mark.PlaneValue, uvx = mark.Uvx, uvy = mark.Uvy, name = mark.Name
+                        , planeValue = mark.PlaneValue ?? 0, uvx = mark.Uvx, uvy = mark.Uvy, name = mark.Name
                         , cameraPositionX = mark.CameraPositionX, cameraPositionY = mark.CameraPositionY
                         , cameraPositionZ = mark.CameraPositionZ, cameraRotationX = mark.CameraRotationX
                         , cameraRotationY = mark.CameraRotationY, cameraRotationZ = mark.CameraRotationZ
@@ -51,7 +51,7 @@ namespace Plugins.models
             }
         }
 
-        public int SavingMark(Bonemark newMark, int index=-1)
+        public int SavingMark(Bonemark newMark, int index = -1)
         {
             if (index == -1)
             {
