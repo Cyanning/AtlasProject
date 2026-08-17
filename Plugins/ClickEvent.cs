@@ -210,11 +210,9 @@ namespace Plugins
         {
             modelPrefabName = Path.GetFileNameWithoutExtension(url) switch
             {
-                "encypt_body_male" => "BodyMale",
-                "encypt_body_female" => "BodyFemale",
-                "encypt_body_male_static" => "BodyMaleStatic",
-                "encypt_body_female_static" => "BodyFemaleStatic",
-                _ => throw new FileNotFoundException($"File Error: {url}")
+                "encypt_body_male" => "BodyMale", "encypt_body_female" => "BodyFemale"
+                , "encypt_body_male_static" => "BodyMaleStatic", "encypt_body_female_static" => "BodyFemaleStatic"
+                , _ => throw new FileNotFoundException($"File Error: {url}")
             };
         }
 
@@ -229,11 +227,11 @@ namespace Plugins
                     Destroy(mObj);
                 }
 
-                if (myLoadedAssetBundle != null)
+                if (_myLoadedAssetBundle != null)
                 {
-                    myLoadedAssetBundle.Unload(true);
+                    _myLoadedAssetBundle.Unload(true);
 
-                    myLoadedAssetBundle = null;
+                    _myLoadedAssetBundle = null;
                 }
 
                 mObj = null;
@@ -258,18 +256,18 @@ namespace Plugins
                 ab1 = null;
             }
 
-            if (myLoadedAssetBundle != null)
+            if (_myLoadedAssetBundle != null)
             {
-                myLoadedAssetBundle.Unload(true);
-                myLoadedAssetBundle = null;
+                _myLoadedAssetBundle.Unload(true);
+                _myLoadedAssetBundle = null;
             }
         }
 
 
         public AssetBundle ab1;
-        AssetBundle myLoadedAssetBundle;
+        AssetBundle _myLoadedAssetBundle;
 
-        public void LoadFile()
+        private void LoadFile()
         {
             //GameObject go;
             // Debug.Log("资源路径为："+ assetsUrl);
@@ -282,9 +280,9 @@ namespace Plugins
 
             // Debug.Log("模型路径为:" + modelPath);
             var fileStream = new MyStream(modelPath, FileMode.Open, FileAccess.Read, FileShare.None, 1024 * 64, false);
-            myLoadedAssetBundle = AssetBundle.LoadFromStream(fileStream);
+            _myLoadedAssetBundle = AssetBundle.LoadFromStream(fileStream);
 
-            mObj = Instantiate(myLoadedAssetBundle.LoadAsset<GameObject>(modelPrefabName));
+            mObj = Instantiate(_myLoadedAssetBundle.LoadAsset<GameObject>(modelPrefabName));
 
             fileStream.Close();
             //Debug.Log("模型路径为end: mObj = " + mObj == null);
@@ -293,33 +291,41 @@ namespace Plugins
             mObj.transform.localScale = new Vector3(0.0013f, 0.0013f, 0.0013f);
             mObj.transform.position = new Vector3(0, 0, 0);
             mObj.transform.rotation = Quaternion.Euler(new Vector3(-90, 180, 0));
+            SetModelDisplayed();
+        }
 
-            var t = Time.realtimeSinceStartup;
-            //float m_LoadTime = 0f;
+        public void SetModelDisplayed()
+        {
+            var transforms = mObj.transform.GetComponentsInChildren<Transform>(true);
+            var modelDisplay = GameObject.FindGameObjectWithTag("GameController")
+                .GetComponent<ICanvasEditor>()
+                .ModelDisplayed;
 
-            var transforms = mObj.transform.GetComponentsInChildren<Transform>();
-
-            var modelDisplay =
-                GameObject.FindGameObjectWithTag("GameController").GetComponent<ICanvasEditor>().ModelDisplayed;
-
+            AllObject.Clear();
             foreach (var childTransform in transforms)
             {
-                if (!childTransform.name.Contains("~") || childTransform.childCount > 0) continue;
+                if (childTransform.childCount > 0 || !BodyStruct.GetFromPrefab(childTransform.name, out var body))
+                    continue;
 
-                var modelValue = GetModelValue(childTransform.name);
+                var modelValue = body.Value.ToString();
+                var childObj = childTransform.gameObject;
                 if (modelDisplay.Contains(modelValue))
                 {
-                    AllObject.Add(modelValue, childTransform.gameObject);
+                    childObj.SetActive(true);
+                    AllObject.Add(modelValue, childObj);
                 }
-                else
+                else if (childObj.activeInHierarchy)
                 {
-                    childTransform.gameObject.SetActive(false);
+                    childObj.SetActive(false);
                 }
 
-                AddObjectClickEvent(childTransform.gameObject);
+                if (!childObj.TryGetComponent<ModelInteraction>(out _))
+                {
+                    AddObjectClickEvent(childObj);
+                }
             }
-            //m_LoadTime = Time.realtimeSinceStartup - t;
-            //Debug.Log("加载时间:" + m_LoadTime);
+
+            mCamera.GetComponent<MainCameraContraller>().ResetZoomState();
         }
 
         public void SetOrientionPortrait(string isPortrait)
@@ -689,29 +695,6 @@ namespace Plugins
             {
                 FindObjects(mObj, false, true);
             }
-            // else
-            // {
-            //     if (TEST_MODEL)
-            //     {
-            //         var modelString = new StringBuilder();
-            //         foreach (KeyValuePair<string, GameObject> items in AllObject)
-            //         {
-            //             GameObject obj = items.Value;
-            //             if (obj.transform.childCount == 0)
-            //             {
-            //                 //obj.AddComponent<SplitModel>();
-            //                 modelString.Append(items.Key).Append(";");
-            //             }
-            //         }
-            //         showModel.ModelName = modelString.ToString();
-            //     }
-            //     else
-            //     {
-            //         HideBody("");
-            //     }
-            //
-            // }
-
 
             string[] sArray = showModel.ModelName.Split(';');
 
@@ -1049,11 +1032,9 @@ namespace Plugins
             tweener.SetUpdate(true);
             tweener.SetEase(Ease.Linear);
             tweener.SetAutoKill(true);
-            tweener.onComplete = delegate()
-            {
+            tweener.onComplete = delegate() {
                 Tweener tweener1 = mCamera.transform.DORotate(lastSingleShowCameraRotation, 0.3f);
-                tweener1.onComplete = delegate()
-                {
+                tweener1.onComplete = delegate() {
                     isMoveAnima = false;
 
                     string[] sArray = lastSingleShow.Split(';');
@@ -1065,8 +1046,7 @@ namespace Plugins
                     GetShowModel();
                 };
             };
-            tweener.onUpdate = delegate()
-            {
+            tweener.onUpdate = delegate() {
                 mCamera.transform.LookAt(lastSingleShowCenter);
                 /* mCamera.transform.rotation = Quaternion.Euler(mCamera.transform.position - lastSingleShowCenter);*/
             };
@@ -1441,8 +1421,7 @@ namespace Plugins
 
             AndroidJavaClass Toast = new AndroidJavaClass("android.widget.Toast");
             AndroidJavaObject context = activity.Call<AndroidJavaObject>("getApplicationContext");
-            activity.Call("runOnUiThread", new AndroidJavaRunnable(() =>
-                {
+            activity.Call("runOnUiThread", new AndroidJavaRunnable(() => {
                     AndroidJavaObject javaString = new AndroidJavaObject("java.lang.String", text);
                     Toast.CallStatic<AndroidJavaObject>("makeText", context, javaString,
                         Toast.GetStatic<int>("LENGTH_SHORT")).Call("show");
@@ -2466,16 +2445,22 @@ namespace Plugins
                 0);
         }
 
-        public Vector3 GetIntersectWithLineAndPlane(Vector3 point, Vector3 direct, Vector3 planeNormal,
-            Vector3 planePoint)
+        public Vector3 GetIntersectWithLineAndPlane
+        (
+            Vector3 point, Vector3 direct, Vector3 planeNormal,
+            Vector3 planePoint
+        )
         {
             Vector3 dir = (Quaternion.Euler(direct) * Vector3.forward).normalized;
             float d = Vector3.Dot(planePoint - point, planeNormal) / Vector3.Dot(dir.normalized, planeNormal);
             return d * dir.normalized + point;
         }
 
-        public static bool PlaneLineIntersectPoint(Vector3 planeVector, Vector3 planePoint, Vector3 lineVector,
-            Vector3 linePoint, Vector3 rtn)
+        public static bool PlaneLineIntersectPoint
+        (
+            Vector3 planeVector, Vector3 planePoint, Vector3 lineVector,
+            Vector3 linePoint, Vector3 rtn
+        )
         {
             float vp1, vp2, vp3, n1, n2, n3, v1, v2, v3, m1, m2, m3, t, vpt;
             vp1 = planeVector.x;

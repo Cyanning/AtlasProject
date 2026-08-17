@@ -7,21 +7,35 @@ namespace Plugins.orm.Servers
 {
     public class BonemarksServer : AnatomyDatabase
     {
-        public int Gender;
+        public readonly int Gender;
         public int[] Family;
         public List<Bonemarks> Bonemarks;
         public int OrderNum;
 
         public BonemarksServer(int gender)
         {
+            Gender = gender;
+            OrderNum = 0;
+            Bonemarks = new List<Bonemarks>();
+
             if (gender is < 0 or > 1)
                 throw new ArgumentOutOfRangeException(nameof(gender), gender, "性别字段只能为 0 或 1。");
 
-            Gender = gender;
-            OrderNum = 0;
+            if (!TryGenerateBonemarkView())
+            {
+                Family = new int[] { };
+                throw new ArgumentException("当前查询不到任何骨骼信息");
+            }
+
         }
 
-        public int SavingMark(Bonemarks newMark, int index=-1)
+        /// <summary>
+        /// 缓存一个标志数据
+        /// </summary>
+        /// <param name="newMark"></param>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        public int SavingMark(Bonemarks newMark, int index = -1)
         {
             if (index == -1)
             {
@@ -83,7 +97,11 @@ namespace Plugins.orm.Servers
             );
         }
 
-        public void GenerateBonemarkView()
+        /// <summary>
+        /// 获取一个新的骨骼组合
+        /// </summary>
+        /// <returns>该坐标是否存在数据</returns>
+        public bool TryGenerateBonemarkView()
         {
             var minValue = 1000000 + Gender * 10000;
             var maxValue = minValue + 10000;
@@ -94,19 +112,18 @@ namespace Plugins.orm.Servers
 
             if (OrderNum < 0 || OrderNum >= families.Count)
             {
-                throw new ArgumentOutOfRangeException(
-                    nameof(OrderNum), OrderNum,
-                    $"排序位置必须在 0 到 {families.Count - 1} 之间。"
-                );
+                return false;
             }
 
             var familyText = families[OrderNum];
             if (string.IsNullOrWhiteSpace(familyText))
             {
-                throw new InvalidOperationException($"排序位置 {OrderNum} 对应的 family 为空。");
+                return false;
             }
 
             Family = familyText.Split(';').Select(value => int.Parse(value.Trim())).ToArray();
+            Bonemarks.Clear();
+            return true;
         }
     }
 }

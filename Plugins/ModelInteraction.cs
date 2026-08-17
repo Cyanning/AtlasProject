@@ -13,7 +13,6 @@ namespace Plugins
         private static GameObject _mainCamera;
         private static Color _lastColor;
 
-        public Vector3 center;
         public long beginTime;
         private float _lastClickTime;
 
@@ -27,7 +26,6 @@ namespace Plugins
             _mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
             _fingerTouch = _mainCamera.GetComponent<FingerTouchForLittle>();
             _clickEvent = _mainCamera.GetComponent<ClickEvent>();
-
         }
 
         public void OnClickCubeItem(BaseEventData data = null)
@@ -39,10 +37,6 @@ namespace Plugins
             if (data is not PointerEventData {button: PointerEventData.InputButton.Left} ) return;
 
             if (ClickEvent.isMoveAnima) return;
-    
-            if (_clickEvent.showType is not (0 or 2 or 3 or 5)) return;
-
-            var targetRenderer = transform.gameObject.GetComponent<MeshRenderer>();
 
             var gameController = GameObject.FindGameObjectWithTag("GameController").GetComponent<ICanvasEditor>();
             if (_clickEvent.showType == 0)
@@ -55,40 +49,12 @@ namespace Plugins
                     isMove = true;
                     _clickEvent.isResetStatus = false;
                 }
-
                 _lastClickTime = currentTime;
-                var bounds = targetRenderer.bounds;
-                center = bounds.center;
-                ClickEvent.RotationCenter = center;
                 _clickEvent.isClickCenter = true;
+
                 if (isMove)
                 {
-                    var moveDistance = bounds.size.x * bounds.size.y * 1000000 / 27.05297 * 0.13f;
-                    if (moveDistance < 0.13)
-                    {
-                        moveDistance = 0.13;
-                    }
-
-                    var tmp = new Vector3(0, 0, -1 * ((float)moveDistance));
-
-                    //Sequence quence = DOTween.Sequence();
-
-                    var end = center + _mainCamera.transform.rotation * tmp;
-                    ClickEvent.isMoveAnima = true;
-
-                    var ts = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
-                    _clickEvent.beginAnimTime = Convert.ToInt64(ts.TotalSeconds);
-
-                    Tweener tweener = _mainCamera.transform.DOMove(end, 0.5f);
-                    tweener.SetUpdate(true);
-                    tweener.SetEase(Ease.Linear);
-                    tweener.SetAutoKill(true);
-                    tweener.onComplete = delegate
-                    {
-                        ClickEvent.isMoveAnima = false;
-                        gameController.ClickRespond(transform);
-                    };
-                    tweener.onKill = static delegate { };
+                    ModelMoving();
                 }
                 else
                 {
@@ -97,12 +63,11 @@ namespace Plugins
                     gameController.ClickRespond(transform);
                 }
             }
-            else
-            {
-                //string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
-                //_clickEvent.SetAlpha(clickModelName);
-                gameController.ClickRespond(transform);
-            }
+            // else
+            // {
+            //     string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
+            //     _clickEvent.SetAlpha(clickModelName);
+            // }
 
 
             //_clickEvent.cameraMoveType = 0;
@@ -179,6 +144,41 @@ namespace Plugins
             //     var clickModelName =
             //         transform.name[(transform.name.LastIndexOf("~", StringComparison.Ordinal) + 1)..];
             // }
+        }
+
+        public void ModelMoving()
+        {
+            var targetRenderer = transform.gameObject.GetComponent<MeshRenderer>();
+            var bounds = targetRenderer.bounds;
+            var center = bounds.center;
+
+            ClickEvent.RotationCenter = center;
+            ClickEvent.isMoveAnima = true;
+
+            var moveDistance = bounds.size.x * bounds.size.y * 1000000 / 27.05297 * 0.13f;
+            if (moveDistance < 0.13)
+            {
+                moveDistance = 0.13;
+            }
+
+            var tmp = new Vector3(0, 0, -1 * ((float)moveDistance));
+
+            //Sequence quence = DOTween.Sequence();
+
+            var end = center + _mainCamera.transform.rotation * tmp;
+            var ts = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
+
+            _clickEvent.beginAnimTime = Convert.ToInt64(ts.TotalSeconds);
+
+            Tweener tweener = _mainCamera.transform.DOMove(end, 0.5f);
+            tweener.SetUpdate(true);
+            tweener.SetEase(Ease.Linear);
+            tweener.SetAutoKill(true);
+            tweener.onComplete = delegate
+            {
+                ClickEvent.isMoveAnima = false;
+            };
+            tweener.onKill = static delegate { };
         }
 
         private static string GetGameObjectPath(Transform outTransform)

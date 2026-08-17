@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 
@@ -7,10 +6,75 @@ namespace Plugins
     public class MainCameraContraller : MonoBehaviour
     {
         private Camera _cam;
+        private readonly Vector3 _initialPosition = new (0, 0, -1);
+        private readonly Quaternion _initialRotation = Quaternion.Euler(0f, 0f, 0f);
+
+        // 平滑缩放参数
+        private int _zoomTimes;
+        private const int ZoomMaxTimes = 64;
+        private const float MaxZoomRatio = 0.08f;
+        private const float MinZoomRatio = 0.0000001f;
+        private const float MaxMoveStep = 0.0002f;
 
         private void Start()
         {
             _cam = GetComponent<Camera>();
+        }
+
+        private void LateUpdate()
+        {
+            var scroll = Input.GetAxis("Mouse ScrollWheel");
+            if (scroll > 0.0f && _zoomTimes < ZoomMaxTimes)
+            {
+                var toCenter = ClickEvent.RotationCenter - transform.position;
+                var zoomRatio = GetZoomRatio(_zoomTimes);
+                var moveDistance = toCenter.magnitude * zoomRatio;
+
+                transform.position += toCenter.normalized * moveDistance;
+                _zoomTimes++;
+            }
+            else if (scroll < 0.0f && _zoomTimes > -ZoomMaxTimes)
+            {
+                var toCenter = ClickEvent.RotationCenter - transform.position;
+                var zoomRatio = GetZoomRatio(_zoomTimes - 1);
+
+                // 缩小使用放大的逆运算，使相反方向操作能够回到原距离。
+                var moveDistance = toCenter.magnitude * zoomRatio / (1f - zoomRatio);
+                transform.position -= toCenter.normalized * moveDistance;
+                _zoomTimes--;
+            }
+
+            var moveStep = GetMoveStep();
+            if (Input.GetKey(KeyCode.LeftArrow))
+            {
+                transform.position += transform.right * moveStep;
+            }
+
+            if (Input.GetKey(KeyCode.RightArrow))
+            {
+                transform.position -= transform.right * moveStep;
+            }
+
+            if (Input.GetKey(KeyCode.UpArrow))
+            {
+                transform.position -= transform.up * moveStep;
+            }
+
+            if (Input.GetKey(KeyCode.DownArrow))
+            {
+                transform.position += transform.up * moveStep;
+            }
+
+            if (Input.GetMouseButton(1))
+            {
+                transform.RotateAround(
+                    ClickEvent.RotationCenter, new Vector3(0, 1, 0), Input.GetAxis("Mouse X") * 6
+                );
+
+                transform.RotateAround(
+                    ClickEvent.RotationCenter, transform.right, -Input.GetAxis("Mouse Y") * 6
+                );
+            }
         }
 
         public bool GetPoint(out Vector3 point)
@@ -29,7 +93,17 @@ namespace Plugins
 
         public void ResetTransform()
         {
-            SetCameraTransform(0.025f, -0.075f, -0.95f, -4.5f, -1.5f, 0f);
+            ResetZoomState();
+        }
+
+        /// <summary>
+        /// 恢复脚本初始化时的相机位置，并清空缩放次数。
+        /// </summary>
+        public void ResetZoomState()
+        {
+            transform.position = _initialPosition;
+            transform.rotation = _initialRotation;
+            _zoomTimes = 0;
         }
 
         public void SetCameraTransform(float posX, float posY, float posZ, float rotX, float rotY, float rotZ)
@@ -58,6 +132,29 @@ namespace Plugins
                 y = eulerAngles.y > 180f ? eulerAngles.y - 360f : eulerAngles.y,
                 z = eulerAngles.z > 180f ? eulerAngles.z - 360f : eulerAngles.z
             };
+        }
+
+        private static float GetZoomRatio(int lowerLevel)
+        {
+            int count;
+
+            if (lowerLevel >= 0)
+            {
+                count = lowerLevel;
+            }
+            else
+            {
+                count = -lowerLevel - 1;
+            }
+
+            var progress = Mathf.Clamp01(count / (float)(ZoomMaxTimes - 1));
+            return Mathf.SmoothStep(MaxZoomRatio, MinZoomRatio, progress);
+        }
+
+        private float GetMoveStep()
+        {
+            var zoomRatio = GetZoomRatio(Mathf.Abs(_zoomTimes));
+            return MaxMoveStep * (zoomRatio / MaxZoomRatio);
         }
     }
 }

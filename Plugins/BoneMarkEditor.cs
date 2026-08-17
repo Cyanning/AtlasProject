@@ -17,7 +17,7 @@ namespace Plugins
         private Bonemarks _bonemark; // 当前点击的骨标
         private BonemarksServer _bones; // 缓存的骨标集合
         private int _markIndex;
-        
+
         private bool HasHistory => _markIndex > -1;
         private bool HasClicked => _bonemark != null;
 
@@ -58,6 +58,30 @@ namespace Plugins
                 var userInterface = transform.GetChild(i);
                 switch (userInterface.name)
                 {
+                    // 顶部按钮与信息框
+                    case "LastBoneFamilyBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(
+                            () => SwitchBoneFamily(false)
+                        );
+                        break;
+                    case "NextBoneFamilyBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(
+                            () => SwitchBoneFamily(true)
+                        );
+                        break;
+                    case "TipsInfo":
+                        _tipsText = userInterface.GetComponent<Text>();
+                        break;
+
+                    // 底部响应与历史数据信息框
+                    case "ClickedInfo":
+                        _cilckedText = userInterface.GetComponent<Text>();
+                        break;
+                    case "HistoryInfo":
+                        _historyText = userInterface.GetComponent<Text>();
+                        break;
+
+                    // 底部操作面板
                     case "LastMarkDataBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(
                             () => SwitchMarkIndex(false)
@@ -85,15 +109,6 @@ namespace Plugins
                         break;
                     case "SaveAllBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(SaveBonemarks);
-                        break;
-                    case "ClickedInfo":
-                        _cilckedText = userInterface.GetComponent<Text>();
-                        break;
-                    case "HistoryInfo":
-                        _historyText = userInterface.GetComponent<Text>();
-                        break;
-                    case "TipsInfo":
-                        _tipsText = userInterface.GetComponent<Text>();
                         break;
                     default:
                         Debug.LogWarning($"Unrecognized UI object: {userInterface.name}");
@@ -128,11 +143,26 @@ namespace Plugins
 
             if (!_boneMarkManager.FindBonemarkData(clickedModel.gameObject, uv, out _bonemark))
             {
-                InfomationDisplay("获取鼠标点位失败");
+                InfomationDisplay("获取骨性标志点位失败");
                 return;
             }
 
             if (!MatchNewOld()) InfomationDisplay();
+        }
+
+        private void SwitchBoneFamily(bool advanceOrBack)
+        {
+            _bones.OrderNum += advanceOrBack ? 1 : -1;
+            if (_bones.TryGenerateBonemarkView())
+            {
+                _boneMarkManager.BoneFamilyChanged();
+                _camCtrl.ResetTransform();
+                InfomationDisplay($"第 {_bones.OrderNum + 1} 个骨骼族群已加载");
+            }
+            else
+            {
+                InfomationDisplay($"OrderNum={_bones.OrderNum}, 骨骼族群无数据", Color.red);
+            }
         }
 
         private void SwitchBonemarkMode()
@@ -213,7 +243,7 @@ namespace Plugins
             }
             else
             {
-                _camCtrl.ResetTransform();
+                _boneMarkManager.InitCameraTransform(new BodyStruct(_bones.Family[0]));
             }
         }
 

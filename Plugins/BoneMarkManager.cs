@@ -5,6 +5,7 @@ using System.Linq;
 using System.Collections.Generic;
 using Plugins.models;
 using Plugins.orm.Models;
+using Unity.VisualScripting;
 
 // #if UNITY_EDITOR
 using UnityEditor;
@@ -357,6 +358,30 @@ namespace Plugins
             }
 
             return false;
+        }
+
+        public void BoneFamilyChanged()
+        {
+            if (MarkType != 0)
+            {
+                MarkType = 0;
+                SetBonemark();
+            }
+            _clickEvent.SetModelDisplayed();
+        }
+
+        public void InitCameraTransform(BodyStruct body)
+        {
+            foreach (var objItem in _clickEvent.AllObject)
+            {
+                var value = body.Value.ToString();
+                if (objItem.Key == value)
+                {
+                    var thisCollider = objItem.Value.gameObject.GetComponent<ModelInteraction>();
+                    thisCollider.ModelMoving();
+                    break;
+                }
+            }
         }
     }
 }
