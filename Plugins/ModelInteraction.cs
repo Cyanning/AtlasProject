@@ -56,20 +56,18 @@ namespace Plugins
                 {
                     ModelMoving();
                 }
-                else
-                {
-                    //string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
-                    //_clickEvent.SetAlpha(clickModelName);
-                    gameController.ClickRespond(transform);
-                }
+                gameController.ClickRespond(transform);
+                // else
+                // {
+                //     string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
+                //     _clickEvent.SetAlpha(clickModelName);
+                // }
             }
             // else
             // {
             //     string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
             //     _clickEvent.SetAlpha(clickModelName);
             // }
-
-
             //_clickEvent.cameraMoveType = 0;
 
             if (!ClickEvent.isAutoDisable)
@@ -167,6 +165,7 @@ namespace Plugins
 
             var end = center + _mainCamera.transform.rotation * tmp;
             var ts = DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0);
+            var cameraController = _mainCamera.GetComponent<MainCameraContraller>();
 
             _clickEvent.beginAnimTime = Convert.ToInt64(ts.TotalSeconds);
 
@@ -177,6 +176,7 @@ namespace Plugins
             tweener.onComplete = delegate
             {
                 ClickEvent.isMoveAnima = false;
+                cameraController.ResetZoomTimes();
             };
             tweener.onKill = static delegate { };
         }
@@ -192,7 +192,6 @@ namespace Plugins
 
             return tree;
         }
-
 
         //修改选中mesh的颜色 ，所有mesh默认为：白色
         private static void SetMeshColor(Renderer meshRenderer, Color32 color, bool isShowLittle)

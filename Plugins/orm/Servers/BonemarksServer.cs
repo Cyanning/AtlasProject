@@ -12,30 +12,31 @@ namespace Plugins.orm.Servers
         public List<Bonemarks> Bonemarks;
         public int OrderNum;
 
-        public BonemarksServer(int gender)
+        public BonemarksServer(int gender, int orderNum)
         {
-            Gender = gender;
-            OrderNum = 0;
-            Bonemarks = new List<Bonemarks>();
-
             if (gender is < 0 or > 1)
+            {
                 throw new ArgumentOutOfRangeException(nameof(gender), gender, "性别字段只能为 0 或 1。");
+            }
+
+            Gender = gender;
+            OrderNum = orderNum;
+            Bonemarks = new List<Bonemarks>();
 
             if (!TryGenerateBonemarkView())
             {
                 Family = new int[] { };
                 throw new ArgumentException("当前查询不到任何骨骼信息");
             }
-
         }
 
         /// <summary>
         /// 缓存一个标志数据
         /// </summary>
-        /// <param name="newMark"></param>
-        /// <param name="index"></param>
-        /// <returns></returns>
-        public int SavingMark(Bonemarks newMark, int index = -1)
+        /// <param name="newMark">新标签</param>
+        /// <param name="index">被替换的项目位于Bonemarks的序号，为-1则执行新建</param>
+        /// <returns>更新的标签位于Bonemarks的序号</returns>
+        public int SaveUpdateMark(Bonemarks newMark, int index = -1)
         {
             if (index == -1)
             {
@@ -43,7 +44,7 @@ namespace Plugins.orm.Servers
                 return Bonemarks.Count - 1;
             }
 
-            newMark.Name = Bonemarks[index].Name;
+            newMark.Id = Bonemarks[index].Id;
             Bonemarks[index] = newMark;
             return index;
         }
@@ -79,7 +80,7 @@ namespace Plugins.orm.Servers
         public void SaveAllBonemarks()
         {
             if (Bonemarks == null)
-                throw new ArgumentNullException(nameof(Bonemarks), "骨性标志集合为空。");
+                return;
 
             DB.RunInTransaction(
                 () => {

@@ -209,10 +209,7 @@ namespace Plugins
 
             // 标签组视角
             var group = atlas.groups[_currentGroupIndex];
-            _camCtrl.SetCameraTransform(
-                group.cameraPositionX, group.cameraPositionY, group.cameraPositionZ,
-                group.cameraRotationX, group.cameraRotationY, group.cameraRotationZ
-            );
+            _camCtrl.SetCameraTransform(group.Position, group.Rotation);
             SetLabelsMatrixStates();
             _activeLabel = null;
             UpdateActiveInfo("已切换标签组");
@@ -222,24 +219,15 @@ namespace Plugins
         // 设置图谱初始视角
         private void SaveAtlasItemCarmera()
         {
-            var pos = _camCtrl.GetMainCameraPostion();
-            var rot = _camCtrl.GetMainCameraRotation();
-            atlas.cameraPositionX = pos.x;
-            atlas.cameraPositionY = pos.y;
-            atlas.cameraPositionZ = pos.z;
-            atlas.cameraRotationX = rot.x;
-            atlas.cameraRotationY = rot.y;
-            atlas.cameraRotationZ = rot.z;
+            atlas.Position = _camCtrl.GetMainCameraPostion();
+            atlas.Rotation = _camCtrl.GetMainCameraRotation();
             UpdateActiveInfo("图谱初始视角已记录");
         }
 
         // 视角复位
         private void ResetAtlasCarmera()
         {
-            _camCtrl.SetCameraTransform(
-                atlas.cameraPositionX, atlas.cameraPositionY, atlas.cameraPositionZ,
-                atlas.cameraRotationX, atlas.cameraRotationY, atlas.cameraRotationZ
-            );
+            _camCtrl.SetCameraTransform(atlas.Position, atlas.Rotation);
         }
 
         private void SaveAtlas()

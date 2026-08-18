@@ -1,11 +1,14 @@
 using SQLite;
+using UnityEngine;
 
 namespace Plugins.orm.Models
 {
     [Table("bone_marks")]
     public class Bonemarks
     {
-        [PrimaryKey, AutoIncrement, Column("id")] public int Id { get; set; }
+        [PrimaryKey, AutoIncrement, Column("id")]
+        public int Id { get; set; }
+
         [Column("type")] public int Type { get; set; }
         [Column("value")] public int Value { get; set; }
         [Column("color")] public string Color { get; set; }
@@ -22,5 +25,23 @@ namespace Plugins.orm.Models
 
         [Ignore] public bool BeForamen => string.IsNullOrEmpty(Color) && PlaneValue > 0;
         [Ignore] public bool BePainting => !string.IsNullOrEmpty(Color) && PlaneValue == 0;
+
+        [Ignore] public Vector3 Position {
+            get => new(CameraPositionX, CameraPositionY, CameraPositionZ);
+            set {
+                CameraPositionX = value.x;
+                CameraPositionY = value.y;
+                CameraPositionZ = value.z;
+            }
+        }
+
+        [Ignore] public Vector3 Rotation {
+            get => new(CameraRotationX, CameraRotationY, CameraRotationZ);
+            set {
+                CameraRotationX = value.x;
+                CameraRotationY = value.y;
+                CameraRotationZ = value.z;
+            }
+        }
     }
 }

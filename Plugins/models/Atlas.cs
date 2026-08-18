@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 using System.Collections.Generic;
 
 
@@ -20,6 +21,23 @@ namespace Plugins.models
         public float cameraRotationZ;
         public List<int> types;
         public List<AtlasGroup> groups;
+
+        public Vector3 Position {
+            get => new(cameraPositionX, cameraPositionY, cameraPositionZ);
+            set {
+                cameraPositionX = value.x;
+                cameraPositionY = value.y;
+                cameraPositionZ = value.z;
+            }
+        }
+        public Vector3 Rotation {
+            get => new(cameraRotationX, cameraRotationY, cameraRotationZ);
+            set {
+                cameraRotationX = value.x;
+                cameraRotationY = value.y;
+                cameraRotationZ = value.z;
+            }
+        }
     }
 
     [Serializable]
@@ -32,6 +50,23 @@ namespace Plugins.models
         public float cameraRotationY;
         public float cameraRotationZ;
         public List<AtlasLabel> labels;
+
+        public Vector3 Position {
+            get => new(cameraPositionX, cameraPositionY, cameraPositionZ);
+            set {
+                cameraPositionX = value.x;
+                cameraPositionY = value.y;
+                cameraPositionZ = value.z;
+            }
+        }
+        public Vector3 Rotation {
+            get => new(cameraRotationX, cameraRotationY, cameraRotationZ);
+            set {
+                cameraRotationX = value.x;
+                cameraRotationY = value.y;
+                cameraRotationZ = value.z;
+            }
+        }
     }
 
     [Serializable]
@@ -44,6 +79,15 @@ namespace Plugins.models
         public float pointPositionX;
         public float pointPositionY;
         public float pointPositionZ;
+
+        public Vector3 Point {
+            get => new(pointPositionX, pointPositionY, pointPositionZ);
+            set {
+                pointPositionX = value.x;
+                pointPositionY = value.y;
+                pointPositionZ = value.z;
+            }
+        }
     }
 
 

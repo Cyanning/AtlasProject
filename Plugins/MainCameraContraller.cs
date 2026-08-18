@@ -6,15 +6,13 @@ namespace Plugins
     public class MainCameraContraller : MonoBehaviour
     {
         private Camera _cam;
-        private readonly Vector3 _initialPosition = new (0, 0, -1);
-        private readonly Quaternion _initialRotation = Quaternion.Euler(0f, 0f, 0f);
 
         // 平滑缩放参数
         private int _zoomTimes;
         private const int ZoomMaxTimes = 64;
         private const float MaxZoomRatio = 0.08f;
         private const float MinZoomRatio = 0.0000001f;
-        private const float MaxMoveStep = 0.0002f;
+        private const float MaxMoveStep = 0.00002f;
 
         private void Start()
         {
@@ -91,25 +89,28 @@ namespace Plugins
             return result;
         }
 
-        public void ResetTransform()
-        {
-            ResetZoomState();
-        }
-
         /// <summary>
         /// 恢复脚本初始化时的相机位置，并清空缩放次数。
         /// </summary>
         public void ResetZoomState()
         {
-            transform.position = _initialPosition;
-            transform.rotation = _initialRotation;
+            transform.position = new Vector3(0, 0, -1);
+            transform.rotation = Quaternion.Euler(0f, 0f, 0f);
             _zoomTimes = 0;
         }
 
-        public void SetCameraTransform(float posX, float posY, float posZ, float rotX, float rotY, float rotZ)
+        /// <summary>
+        /// 保留当前相机位置和旋转，只清空缩放次数。
+        /// </summary>
+        public void ResetZoomTimes()
         {
-            _cam.transform.position = new Vector3(posX, posY, posZ);
-            _cam.transform.rotation = Quaternion.Euler(rotX, rotY, rotZ);
+            _zoomTimes = 0;
+        }
+
+        public void SetCameraTransform(Vector3 pos, Vector3 rot)
+        {
+            _cam.transform.position = new Vector3(pos.x, pos.y, pos.z);
+            _cam.transform.rotation = Quaternion.Euler(rot.x, rot.y, rot.z);
         }
 
         public Vector3 GetMainCameraPostion()

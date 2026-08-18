@@ -301,7 +301,7 @@ namespace Plugins
                 .GetComponent<ICanvasEditor>()
                 .ModelDisplayed;
 
-            AllObject.Clear();
+            AllObject.Clear(); // 清除所有模型的引用
             foreach (var childTransform in transforms)
             {
                 if (childTransform.childCount > 0 || !BodyStruct.GetFromPrefab(childTransform.name, out var body))

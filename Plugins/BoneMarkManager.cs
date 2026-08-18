@@ -1,11 +1,9 @@
-using System;
 using UnityEngine;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using Plugins.models;
 using Plugins.orm.Models;
-using Unity.VisualScripting;
 
 // #if UNITY_EDITOR
 using UnityEditor;
@@ -47,16 +45,16 @@ namespace Plugins
         }
     }
 
-    internal sealed class BoneMaterial
+    internal sealed class BoneRenderer
     {
-        public readonly Material Mat;
+        public readonly Renderer Renderer;
         public Texture2D Origin;
         public readonly Texture2D[] Identifier;
         public readonly Texture2D[] Surface;
 
-        public BoneMaterial(Material mat, int markKindsSum)
+        public BoneRenderer(Renderer renderer, int markKindsSum)
         {
-            Mat = mat;
+            Renderer = renderer;
             Origin = null;
             Identifier = new Texture2D[markKindsSum];
             Surface = new Texture2D[markKindsSum];
@@ -68,6 +66,7 @@ namespace Plugins
         private ClickEvent _clickEvent;
 
         // 类型区分
+        private const string OriginShaderName = "aseop";
         private const string BoneShaderName = "ame3";
         private const int MarkTypeRange = 4;
         public int MarkType { get; private set; }
@@ -76,7 +75,7 @@ namespace Plugins
         private GameObject _foramens;
 
         // 缓存模型贴图数据 方便来回切换
-        private BoneMaterial[] _materials;
+        private BoneRenderer[] _boneRenderers;
         private Shader _originShader;
         private Shader _markShader;
 
@@ -93,8 +92,22 @@ namespace Plugins
         private void Start()
         {
             _clickEvent = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<ClickEvent>();
-            _originShader = BoneAssets.GetShader("aseop");
+            _originShader = BoneAssets.GetShader(OriginShaderName);
             _markShader = BoneAssets.GetShader(BoneShaderName);
+        }
+
+        /// <summary>
+        /// 切换骨骼模型群时调用
+        /// </summary>
+        public void BoneFamilyChanged()
+        {
+            if (MarkType != 0)
+            {
+                MarkType = 0;
+                SetBonemark();
+            }
+            _boneRenderers = null;
+            _clickEvent.SetModelDisplayed();
         }
 
         /// <summary>
@@ -107,21 +120,22 @@ namespace Plugins
 
         public void SetBonemark()
         {
-            if (_materials == null || _materials.Length == 0)
+            if (_boneRenderers == null || _boneRenderers.Length == 0)
             {
                 CacheMaterials();
             }
 
             ChangeTextures();
 
-            if (MarkType == 1)
-            {
-                LoadForamens();
-            }
-            else if (_foramens != null)
-            {
-                Destroy(_foramens);
-            }
+            // Todo 暂时不使用孔洞模型
+            // if (MarkType == 1)
+            // {
+            //     LoadForamens();
+            // }
+            // else if (_foramens != null)
+            // {
+            //     Destroy(_foramens);
+            // }
         }
 
         /// <summary>
@@ -130,34 +144,22 @@ namespace Plugins
         private void CacheMaterials()
         {
             // 获取当前所有骨骼的材质球
-            var materialsWithName = new Dictionary<string, Material>();
+            var materials = new List<BoneRenderer>();
             foreach (var obj in _clickEvent.mObj.GetComponentsInChildren<Transform>())
             {
                 if (obj.childCount > 0 || !BodyStruct.GetFromPrefab(obj.name, out var body) || body.SystemNum != 0)
                     continue;
 
-                var material = obj.GetComponent<Renderer>().sharedMaterial;
-                if (material == null) continue;
-
-                materialsWithName.TryAdd(material.name, material);
-            }
-
-            if (materialsWithName.Count == 0) return;
-
-            // 获取当前材质球信息
-            var materials = new List<BoneMaterial>();
-            foreach (var mat in materialsWithName.Values)
-            {
                 // 缓存材质文件
-                var bnMat = new BoneMaterial(mat, MarkTypeRange);
-                if (bnMat.Mat == null)
-                    throw new ArgumentException($"传入的{nameof(bnMat)}的Mat属性为空");
+                var boneRenderer = obj.GetComponent<Renderer>();
+                var bnMat = new BoneRenderer(boneRenderer, MarkTypeRange);
+                var mat = bnMat.Renderer.material;
 
                 // 缓存默认贴图
-                var markName = mat.name;
-                if (bnMat.Mat.name == _originShader.name)
+                var markName = mat.name.Replace(" (Instance)", "");
+                if (mat.name == _originShader.name)
                 {
-                    bnMat.Origin = bnMat.Mat.GetTexture(ShaderIDTexDisplayed) as Texture2D;
+                    bnMat.Origin = mat.GetTexture(ShaderIDTexDisplayed) as Texture2D;
                 }
                 else
                 {
@@ -174,7 +176,7 @@ namespace Plugins
                 materials.Add(bnMat);
             }
 
-            _materials = materials.ToArray();
+            _boneRenderers = materials.ToArray();
         }
 
         /// <summary>
@@ -184,9 +186,9 @@ namespace Plugins
         {
             if (MarkType == 0)
             {
-                foreach (var material in _materials)
+                foreach (var material in _boneRenderers)
                 {
-                    var mat = material.Mat;
+                    var mat = material.Renderer.material;
                     mat.shader = _originShader;
                     mat.SetTexture(ShaderIDTexDisplayed, material.Origin);
                 }
@@ -194,9 +196,9 @@ namespace Plugins
             else
             {
                 var textureIndex = MarkType - 1;
-                foreach (var material in _materials)
+                foreach (var material in _boneRenderers)
                 {
-                    var mat = material.Mat;
+                    var mat = material.Renderer.material;
                     mat.shader = _markShader;
                     mat.SetColor(ShaderIDBgcolor, Color.white);
                     mat.SetInt(ShaderIDTranslucent, 1);
@@ -307,7 +309,6 @@ namespace Plugins
             if (!chickedModel.TryGetComponent(out Renderer render))
                 return false;
 
-            // 不能用共享的材质
             var material = render.material;
 
             // 检测是否是骨性标志shader
@@ -327,13 +328,10 @@ namespace Plugins
             var r = Mathf.RoundToInt(color.r * 255);
             var g = Mathf.RoundToInt(color.g * 255);
             var b = Mathf.RoundToInt(color.b * 255);
-            if (255 - r > 5 || 255 - g > 5 || 255 - b > 5)
-            {
-                colorCode = $"{r},{g},{b}";
-                return true;
-            }
+            colorCode = $"{r},{g},{b}";
 
-            return false;
+            // 白色不算标志点
+            return !IsSameColor(colorCode);
         }
 
         /// <summary>
@@ -360,16 +358,6 @@ namespace Plugins
             return false;
         }
 
-        public void BoneFamilyChanged()
-        {
-            if (MarkType != 0)
-            {
-                MarkType = 0;
-                SetBonemark();
-            }
-            _clickEvent.SetModelDisplayed();
-        }
-
         public void InitCameraTransform(BodyStruct body)
         {
             foreach (var objItem in _clickEvent.AllObject)
@@ -382,6 +370,31 @@ namespace Plugins
                     break;
                 }
             }
+        }
+
+        /// <param name="targetColor">待验证的颜色</param>
+        /// <param name="resultColor">被比较的颜色，不传则与白色比较</param>
+        /// <returns></returns>
+        public static bool IsSameColor(string targetColor, string resultColor = null)
+        {
+            var target = targetColor.Split(",").Select(int.Parse).ToArray();
+            if (string.IsNullOrEmpty(resultColor))
+            {
+                foreach (var colorNum in target)
+                {
+                    if (colorNum < 250) return false;
+                }
+            }
+            else
+            {
+                var result = targetColor.Split(",").Select(int.Parse).ToArray();
+                for (var i = 0; i < 3; i++)
+                {
+                    if (Mathf.Abs(result[i] - target[i]) > 5)
+                        return true;
+                }
+            }
+            return false;
         }
     }
 }
