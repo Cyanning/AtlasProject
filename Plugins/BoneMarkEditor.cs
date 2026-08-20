@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -34,8 +33,9 @@ namespace Plugins
         private BoneMarkManager _boneMarkManager;
 
         // 接口
-        public string[] ModelDisplayed => _bones.Family.Select(val => val.ToString()).ToArray();
         public int ModelGender => _bones.Gender;
+        public string[] ModelDisplayed => _bones.Family.Select(static e => e.ToString()).ToArray();
+        public string[] ForamensDisplayed => _bones.GenerateBonemarkForamens().Select(e => e.ToString()).ToArray();
 
         private static readonly HashSet<string> ValidRoots = new()
         {
@@ -45,7 +45,15 @@ namespace Plugins
         private void Awake()
         {
             // 初始化数据
-            _bones = new BonemarksServer(0, boneOrderNum);
+            _bones = new BonemarksServer(0);
+            if (_bones.TryGenerateBonemarkView(boneOrderNum) || _bones.TryGenerateBonemarkView(0))
+            {
+                boneOrderNum = _bones.OrderNum;
+            }
+            else
+            {
+                Debug.Log("骨骼视图数据获取失败");
+            }
         }
 
         private void Start()
@@ -165,33 +173,25 @@ namespace Plugins
                 return;
             }
 
-            if (MatchNewOld(out var info))
-            {
-                InfomationDisplay(info, Color.green);
-            }
-            else
-            {
-                InfomationDisplay();
-            }
+            InfomationDisplay();
         }
 
         private void SwitchBoneFamily(bool advanceOrBack)
         {
-            _bones.OrderNum += advanceOrBack ? 1 : -1;
-            if (_bones.TryGenerateBonemarkView())
+            if (_bones.TryGenerateBonemarkView(_bones.OrderNum + (advanceOrBack ? 1 : -1)))
             {
                 _boneMarkManager.BoneFamilyChanged();
                 _camCtrl.ResetZoomState();
                 _markIndex = -1;
-
+                _bonemark = null;
                 currentMarkName = "";
                 boneOrderNum = _bones.OrderNum;
-
                 InfomationDisplay($"第 {_bones.OrderNum + 1} 个骨骼族群已加载");
+                Debug.Log($"加载模型 {string.Join(",", _bones.Family)}");
             }
             else
             {
-                InfomationDisplay($"OrderNum={_bones.OrderNum}, 骨骼族群无数据", Color.red);
+                InfomationDisplay($"{(advanceOrBack ? "下" : "上")}一个骨骼族群加载失败");
             }
         }
 
@@ -213,7 +213,7 @@ namespace Plugins
         private void SwitchMarkIndex(bool advanceOrBack)
         {
             _markIndex += advanceOrBack ? 1 : -1;
-            var len = _bones.Bonemarks.Count;
+            var len = _bones.BonemarksList.Count;
 
             if (_markIndex >= len)
             {
@@ -226,16 +226,8 @@ namespace Plugins
 
             if (HasHistory)
             {
-                currentMarkName = _bones.Bonemarks[_markIndex].Name;
-
-                if (MatchNewOld(out var info))
-                {
-                    InfomationDisplay(info, Color.green);
-                }
-                else
-                {
-                    InfomationDisplay();
-                }
+                currentMarkName = _bones.BonemarksList[_markIndex].Name;
+                InfomationDisplay();
             }
             else
             {
@@ -251,18 +243,21 @@ namespace Plugins
                 _bonemark.Name = currentMarkName;
                 _bonemark.Position = _camCtrl.GetMainCameraPostion();
                 _bonemark.Rotation = _camCtrl.GetMainCameraRotation();
-                _markIndex = _bones.SaveUpdateMark(_bonemark, _markIndex);
-                _bonemark = null;
-                InfomationDisplay("当前点位已添加");
+
+                if (_bones.SaveUpdateMark(_bonemark, ref _markIndex))
+                {
+                    _bonemark = null;
+                    InfomationDisplay("当前点位已添加");
+                }
             }
             else if (HasHistory)
             {
-                _bones.Bonemarks[_markIndex].Name = currentMarkName;
+                _bones.BonemarksList[_markIndex].Name = currentMarkName;
                 InfomationDisplay("当前记录点的名称已更新");
             }
             else
             {
-                InfomationDisplay("无效的点击");
+                InfomationDisplay("无法执行添加");
             }
         }
 
@@ -270,8 +265,12 @@ namespace Plugins
         {
             if (HasHistory)
             {
-                _bones.Bonemarks.RemoveAt(_markIndex);
+                _bones.DeleteMark(_markIndex);
                 InfomationDisplay("该条记录已删除");
+                if (_markIndex > 0)
+                {
+                    _markIndex--;
+                }
             }
             else
             {
@@ -284,7 +283,7 @@ namespace Plugins
         {
             if (HasHistory)
             {
-                var mark = _bones.Bonemarks[_markIndex];
+                var mark = _bones.BonemarksList[_markIndex];
                 _camCtrl.SetCameraTransform(mark.Position, mark.Rotation);
             }
             else
@@ -301,23 +300,20 @@ namespace Plugins
             InfomationDisplay("所有标志已保存");
         }
 
-        private bool MatchNewOld(out string resultInfo)
+        private bool MatchNewOld()
         {
-            resultInfo = "";
-
             if (!HasClicked || !HasHistory)
                 return false;
 
-            var oldBonemark = _bones.Bonemarks[_markIndex];
+            var oldBonemark = _bones.BonemarksList[_markIndex];
             if (oldBonemark.BePainting && _bonemark.BePainting)
             {
                 if (
                     oldBonemark.Type == _bonemark.Type
                     && oldBonemark.Value == _bonemark.Value
-                    &&  BoneMarkManager.IsSameColor(oldBonemark.Color, _bonemark.Color)
+                    && BoneMarkManager.IsSameColor(oldBonemark.Color, _bonemark.Color)
                 )
                 {
-                    resultInfo = "匹配成功";
                     return true;
                 }
             }
@@ -325,7 +321,6 @@ namespace Plugins
             {
                 if (oldBonemark.Type == _bonemark.Type && oldBonemark.PlaneValue == _bonemark.PlaneValue)
                 {
-                    resultInfo = "匹配成功";
                     return true;
                 }
             }
@@ -333,9 +328,8 @@ namespace Plugins
             return false;
         }
 
-        private void InfomationDisplay(string tips = "", Color? fcolor = null)
+        private void InfomationDisplay(string tips = "")
         {
-            _tipsText.color = fcolor ?? Color.white;
             _tipsText.text = tips;
 
             if (HasClicked)
@@ -348,6 +342,9 @@ namespace Plugins
                     $"Uv: {_bonemark.Uvx}, {_bonemark.Uvy}",
                     $"Plane Value: {_bonemark.PlaneValue}"
                 );
+                _historyText.color = MatchNewOld()
+                    ? new Color(0.37831f, 0.64899f, 0.51972f, 1.0f)
+                    : Color.white;
             }
             else
             {
@@ -356,7 +353,7 @@ namespace Plugins
 
             if (HasHistory)
             {
-                var mark = _bones.Bonemarks[_markIndex];
+                var mark = _bones.BonemarksList[_markIndex];
                 _historyText.text = string.Join("\n",
                     $"Id: {mark.Id}",
                     $"Type: {mark.Type}",
@@ -369,7 +366,7 @@ namespace Plugins
                     $"Rotation: {mark.CameraRotationX}, {mark.CameraRotationY}, {mark.CameraRotationZ}"
                 );
                 _historyText.color = _boneMarkManager.ColorCodeVerification(mark)
-                    ? Color.green
+                    ? new Color(0.6039216f, 0.8117647f, 1.0f, 1.0f)
                     : Color.white;
             }
             else

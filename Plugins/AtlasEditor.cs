@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using JetBrains.Annotations;
 using Plugins.models;
+using Plugins.orm.Servers;
 
 
 namespace Plugins
@@ -22,6 +23,7 @@ namespace Plugins
         private Text _atlasInfo;
         private MainCameraContraller _camCtrl;
 
+        private BonemarksServer _bonemarksServer;
         private BoneMarkManager _boneMarkManager;  // 骨性标志控制脚本
 
         private static readonly HashSet<string> ValidRoots = new()
@@ -31,6 +33,12 @@ namespace Plugins
             "ForamensMale(Clone)",
             "ForamensFemale(Clone)"
         };
+
+        // 通过画板接口操作模型显示
+        public int ModelGender => atlas.gender;
+        public string[] ModelDisplayed => atlas.modelDisplayed;
+        public string[] ForamensDisplayed =>
+            _bonemarksServer.GenerateBonemarkForamens().Select(e => e.ToString()).ToArray();
 
         private void Awake()
         {
@@ -95,10 +103,6 @@ namespace Plugins
             UpdateActiveInfo();
             UpdateAtlasInfo();
         }
-
-        // 通过画板接口操作模型显示
-        public int ModelGender => atlas.gender;
-        public string[] ModelDisplayed => atlas.modelDisplayed;
 
         // 创建一个标签点位缓存 通过画板接口
         public void ClickRespond(Transform clickedModel)

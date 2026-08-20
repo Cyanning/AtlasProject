@@ -24,7 +24,15 @@ namespace Plugins.orm.Models
         [Column("camera_rotation_z")] public float CameraRotationZ { get; set; }
 
         [Ignore] public bool BeForamen => string.IsNullOrEmpty(Color) && PlaneValue > 0;
-        [Ignore] public bool BePainting => !string.IsNullOrEmpty(Color) && PlaneValue == 0;
+        [Ignore] public bool BePainting => !string.IsNullOrEmpty(Color) && PlaneValue is 0 or null;
+
+        [Ignore] public Vector2 Uv {
+            get => new(Uvx, Uvy);
+            set {
+                Uvx = value.x;
+                Uvy = value.y;
+            }
+        }
 
         [Ignore] public Vector3 Position {
             get => new(CameraPositionX, CameraPositionY, CameraPositionZ);

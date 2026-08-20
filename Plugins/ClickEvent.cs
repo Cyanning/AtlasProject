@@ -275,7 +275,6 @@ namespace Plugins
             if (ab1 == null && assetsUrl != null)
             {
                 ab1 = AssetBundle.LoadFromFile(assetsUrl);
-                // Debug.Log("ab1 里的资源: " + string.Join(", ", ab1.GetAllAssetNames()));
             }
 
             // Debug.Log("模型路径为:" + modelPath);

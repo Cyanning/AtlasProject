@@ -5,43 +5,59 @@ using System.Collections.Generic;
 using Plugins.models;
 using Plugins.orm.Models;
 
-// #if UNITY_EDITOR
+#if UNITY_EDITOR
 using UnityEditor;
-// #endif
+#endif
 
 namespace Plugins
 {
     internal static class BoneAssets
     {
+#if !UNITY_EDITOR
+        private static readonly AssetBundle ResourceAb = AssetBundle.LoadFromFile(
+            Path.Combine(Application.streamingAssetsPath, "resource_ab")
+        );
+#endif
+
         public static string GetForamensAbPath(int gender)
         {
             var foramenname = gender == 1 ? "foramensfemale" : "foramensmale";
+#if UNITY_EDITOR
             return Path.Combine(Application.dataPath, $"StreamingAssets/Windows/encypt_{foramenname}");
+#else
+            return Path.Combine(Application.streamingAssetsPath, $"encypt_{foramenname}");
+#endif
         }
 
         public static Shader GetShader(string shaderName)
         {
-// #if UNITY_EDITOR
+#if UNITY_EDITOR
             return AssetDatabase.LoadAssetAtPath<Shader>($"Assets/model/Shader/{shaderName}.shader");
-// #endif
+#else
+            return ResourceAb.LoadAsset<Shader>(shaderName);
+#endif
         }
 
         public static Texture2D GetGugeOriginTexture(string textureName)
         {
-// #if UNITY_EDITOR
+#if UNITY_EDITOR
             return AssetDatabase.LoadAssetAtPath<Texture2D>(
                 $"Assets/model/Maps/Guge/{textureName}.jpg"
             );
-// #endif
+#else
+            return ResourceAb.LoadAsset<Texture2D>(textureName);
+#endif
         }
 
         public static Texture2D GetBonemarkTexture(string textureName)
         {
-// #if UNITY_EDITOR
+#if UNITY_EDITOR
             return AssetDatabase.LoadAssetAtPath<Texture2D>(
                 $"Assets/model/Maps/bonemark_maps/{textureName}.png"
             );
-// #endif
+#else
+            return ResourceAb.LoadAsset<Texture2D>(textureName);
+#endif
         }
     }
 
@@ -72,7 +88,8 @@ namespace Plugins
         public int MarkType { get; private set; }
 
         // 孔洞资源
-        private GameObject _foramens;
+        private GameObject _bodyForamens;
+        private readonly Dictionary<string, GameObject> _foramens = new();
 
         // 缓存模型贴图数据 方便来回切换
         private BoneRenderer[] _boneRenderers;
@@ -127,15 +144,15 @@ namespace Plugins
 
             ChangeTextures();
 
-            // Todo 暂时不使用孔洞模型
-            // if (MarkType == 1)
-            // {
-            //     LoadForamens();
-            // }
-            // else if (_foramens != null)
-            // {
-            //     Destroy(_foramens);
-            // }
+            if (MarkType == 1)
+            {
+                LoadForamens();
+            }
+            else if (_foramens != null)
+            {
+                Destroy(_bodyForamens);
+                _foramens.Clear();
+            }
         }
 
         /// <summary>
@@ -214,21 +231,23 @@ namespace Plugins
         private void LoadForamens()
         {
             var canvas = gameObject.GetComponent<ICanvasEditor>();
+            var gender = canvas.ModelGender;
+            var foramensValues = canvas.ForamensDisplayed;
 
             using var fileStream = new MyStream(
-                BoneAssets.GetForamensAbPath(canvas.ModelGender),
+                BoneAssets.GetForamensAbPath(gender),
                 FileMode.Open, FileAccess.Read, FileShare.None,
                 1024 * 64, false
             );
 
             var foramensAb = AssetBundle.LoadFromStream(fileStream);
-            _foramens = Instantiate(foramensAb.LoadAsset<GameObject>(ForamenNames[canvas.ModelGender]));
-            _foramens.transform.position = _clickEvent.mObj.transform.position;
-            _foramens.transform.rotation = _clickEvent.mObj.transform.rotation;
-            _foramens.transform.localScale = _clickEvent.mObj.transform.localScale;
+            _bodyForamens = Instantiate(foramensAb.LoadAsset<GameObject>(ForamenNames[gender]));
+            _bodyForamens.transform.position = _clickEvent.mObj.transform.position;
+            _bodyForamens.transform.rotation = _clickEvent.mObj.transform.rotation;
+            _bodyForamens.transform.localScale = _clickEvent.mObj.transform.localScale;
             foramensAb.Unload(false);
 
-            foreach (var foramen in _foramens.GetComponentsInChildren<Transform>())
+            foreach (var foramen in _bodyForamens.GetComponentsInChildren<Transform>())
             {
                 if (
                     foramen.childCount > 0
@@ -237,9 +256,9 @@ namespace Plugins
                 ) continue;
 
                 var value = body.Value.ToString();
-                if (canvas.ModelDisplayed.Contains(value))
+                if (foramensValues.Contains(value))
                 {
-                    _clickEvent.AllObject.Add(value, foramen.gameObject);
+                    _foramens.Add(value, foramen.gameObject);
                 }
                 else
                 {
@@ -286,7 +305,7 @@ namespace Plugins
             {
                 bonemark = new Bonemarks
                 {
-                    Type = MarkType, Value = body.Value, Color = colorCode, Uvx = uv.x, Uvy = uv.y
+                    Type = MarkType, Value = body.Value, Color = colorCode, Uv = uv
                 };
                 return true;
             }
@@ -341,8 +360,9 @@ namespace Plugins
         /// <returns>是否匹配</returns>
         public bool ColorCodeVerification(Bonemarks bonemark)
         {
+            if (bonemark.Type != MarkType || !bonemark.BePainting) return false;
+
             var models = _clickEvent.mObj.GetComponentsInChildren<Transform>();
-            if (!bonemark.BePainting) return false;
 
             foreach (var model in models)
             {
@@ -387,14 +407,14 @@ namespace Plugins
             }
             else
             {
-                var result = targetColor.Split(",").Select(int.Parse).ToArray();
+                var result = resultColor.Split(",").Select(int.Parse).ToArray();
                 for (var i = 0; i < 3; i++)
                 {
                     if (Mathf.Abs(result[i] - target[i]) > 5)
-                        return true;
+                        return false;
                 }
             }
-            return false;
+            return true;
         }
     }
 }

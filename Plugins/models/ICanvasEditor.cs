@@ -6,6 +6,7 @@ namespace Plugins.models
     {
         int ModelGender { get; }
         string[] ModelDisplayed { get; }
+        string[] ForamensDisplayed { get; }
         void ClickRespond(Transform clickedModel);
     }
 }
