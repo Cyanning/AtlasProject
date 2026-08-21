@@ -86,6 +86,7 @@ namespace Plugins
         private const string BoneShaderName = "ame3";
         private const int MarkTypeRange = 4;
         public int MarkType { get; private set; }
+        private int _textureState;
 
         // 孔洞资源
         private GameObject _bodyForamens;
@@ -133,9 +134,10 @@ namespace Plugins
         public void SwitchBonemarkMode()
         {
             MarkType += MarkType < MarkTypeRange ? 1 : -MarkTypeRange;
+            SetBonemark();
         }
 
-        public void SetBonemark()
+        private void SetBonemark()
         {
             if (_boneRenderers == null || _boneRenderers.Length == 0)
             {
@@ -209,6 +211,7 @@ namespace Plugins
                     mat.shader = _originShader;
                     mat.SetTexture(ShaderIDTexDisplayed, material.Origin);
                 }
+                _textureState = 0;
             }
             else
             {
@@ -222,6 +225,36 @@ namespace Plugins
                     mat.SetTexture(ShaderIDTexDisplayed, material.Surface[textureIndex]);
                     mat.SetTexture(ShaderIDTexIdentifier, material.Identifier[textureIndex]);
                 }
+                _textureState = 1;
+            }
+        }
+
+        /// <summary>
+        /// 展示为纯色id贴图
+        /// </summary>
+        public void DisplayIdentifiedTexture()
+        {
+            if (_textureState == 0) return;
+
+            var textureIndex = MarkType - 1;
+
+            if (_textureState == 1)
+            {
+                foreach (var material in _boneRenderers)
+                {
+                    var mat = material.Renderer.material;
+                    mat.SetTexture(ShaderIDTexDisplayed, material.Identifier[textureIndex]);
+                }
+                _textureState = 2;
+            }
+            else
+            {
+                foreach (var material in _boneRenderers)
+                {
+                    var mat = material.Renderer.material;
+                    mat.SetTexture(ShaderIDTexDisplayed, material.Surface[textureIndex]);
+                }
+                _textureState = 1;
             }
         }
 
@@ -378,6 +411,10 @@ namespace Plugins
             return false;
         }
 
+        /// <summary>
+        /// 根据id查找模型并使相机自动移动到模型位置
+        /// </summary>
+        /// <param name="body">人体模型标识数据</param>
         public void InitCameraTransform(BodyStruct body)
         {
             foreach (var objItem in _clickEvent.AllObject)

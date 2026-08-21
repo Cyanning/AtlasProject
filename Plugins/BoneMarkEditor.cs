@@ -105,6 +105,9 @@ namespace Plugins
                     case "LoadMarksDataBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(LoadingMarksData);
                         break;
+                    case "ChangeMapsBtn":
+                        userInterface.GetComponent<Button>().onClick.AddListener(SwitchToIdentfier);
+                        break;
                     case "ChangeBonesBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(SwitchBonemarkMode);
                         break;
@@ -195,10 +198,24 @@ namespace Plugins
             }
         }
 
+        /// <summary>
+        /// 切换id贴图或是外观贴图
+        /// </summary>
+        private void SwitchToIdentfier()
+        {
+            _boneMarkManager.DisplayIdentifiedTexture();
+            InfomationDisplay("切换贴图模式成功");
+        }
+
+        /// <summary>
+        /// 切换骨骼标志类型
+        /// </summary>
         private void SwitchBonemarkMode()
         {
             _boneMarkManager.SwitchBonemarkMode();
-            _boneMarkManager.SetBonemark();
+            _bones.Clear();
+            _markIndex = -1;
+            InfomationDisplay($"切换到标志类型: {_boneMarkManager.MarkType}");
         }
 
         private void LoadingMarksData()
@@ -334,43 +351,42 @@ namespace Plugins
 
             if (HasClicked)
             {
+                _cilckedText.color = MatchNewOld()
+                    ? new Color( 0.45246f, 0.74343f, 0.2714f, 1.0f)
+                    : Color.white;
+
                 _cilckedText.text = string.Join("\n",
                     $"Type: {_bonemark.Type}",
                     $"Value: {_bonemark.Value}",
-                    $"Name: {_bonemark.Name}",
-                    $"Color: {_bonemark.Color}",
-                    $"Uv: {_bonemark.Uvx}, {_bonemark.Uvy}",
-                    $"Plane Value: {_bonemark.PlaneValue}"
+                    $"Color: {_bonemark.Color}, Plane Value: {_bonemark.PlaneValue}",
+                    $"Uv: {_bonemark.Uvx}, {_bonemark.Uvy}"
                 );
-                _historyText.color = MatchNewOld()
-                    ? new Color(0.37831f, 0.64899f, 0.51972f, 1.0f)
-                    : Color.white;
             }
             else
             {
+                _cilckedText.color = Color.white;
                 _cilckedText.text = "<无目标点>";
             }
 
             if (HasHistory)
             {
                 var mark = _bones.BonemarksList[_markIndex];
-                _historyText.text = string.Join("\n",
-                    $"Id: {mark.Id}",
-                    $"Type: {mark.Type}",
-                    $"Value: {mark.Value}",
-                    $"Name: {mark.Name}",
-                    $"Color: {mark.Color}",
-                    $"Uv: {mark.Uvx}, {mark.Uvy}",
-                    $"Plane Value: {mark.PlaneValue}",
-                    $"Position: {mark.CameraPositionX}, {mark.CameraPositionY}, {mark.CameraPositionZ}",
-                    $"Rotation: {mark.CameraRotationX}, {mark.CameraRotationY}, {mark.CameraRotationZ}"
-                );
                 _historyText.color = _boneMarkManager.ColorCodeVerification(mark)
                     ? new Color(0.6039216f, 0.8117647f, 1.0f, 1.0f)
                     : Color.white;
+
+                _historyText.text = string.Join("\n",
+                    $"Id: {mark.Id}, Type: {mark.Type}",
+                    $"Value: {mark.Value}, Name: {mark.Name}",
+                    $"Color: {mark.Color}, Plane Value: {mark.PlaneValue}",
+                    $"Uv: {mark.Uvx}, {mark.Uvy}",
+                    $"Position: {mark.CameraPositionX}, {mark.CameraPositionY}, {mark.CameraPositionZ}",
+                    $"Rotation: {mark.CameraRotationX}, {mark.CameraRotationY}, {mark.CameraRotationZ}"
+                );
             }
             else
             {
+                _historyText.color = Color.white;
                 _historyText.text = "<新建>";
             }
         }

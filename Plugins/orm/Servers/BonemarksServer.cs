@@ -19,7 +19,7 @@ namespace Plugins.orm.Servers
         public int OrderNum { get; private set; }
 
         // sql通配符
-        private string Placeholders => string.Join(",", Enumerable.Repeat("?", Family.Length));
+        private string FamilyPlaceHolders => string.Join(",", Enumerable.Repeat("?", Family.Length));
 
         public BonemarksServer(int gender)
         {
@@ -59,8 +59,10 @@ namespace Plugins.orm.Servers
                 oldMark.Name = newMark.Name;
                 oldMark.Position = newMark.Position;
                 oldMark.Rotation = newMark.Rotation;
+                return true;
             }
-            else if (newMark.BeForamen)
+
+            if (newMark.BeForamen)
             {
                 if (oldMark.Type != newMark.Type)
                     return false;
@@ -69,6 +71,7 @@ namespace Plugins.orm.Servers
                 oldMark.Name = newMark.Name;
                 oldMark.Position = newMark.Position;
                 oldMark.Rotation = newMark.Rotation;
+                return true;
             }
 
             return false;
@@ -89,6 +92,15 @@ namespace Plugins.orm.Servers
         }
 
         /// <summary>
+        /// 清空骨性标志和被删除的标志的缓存
+        /// </summary>
+        public void Clear()
+        {
+            _bonemarks.Clear();
+            _bonemarkIdsDeleted.Clear();
+        }
+
+        /// <summary>
         /// 传入多个value和标志类型，查询并返回全部骨性标志
         /// </summary>
         /// <param name="markType">标志类型</param>
@@ -104,7 +116,7 @@ namespace Plugins.orm.Servers
             Array.Copy(Family, 0, arguments, 1, Family.Length);
 
             _bonemarks = DB.Query<Bonemarks>(
-                $"SELECT * FROM bone_marks WHERE type=? AND value IN ({Placeholders})",
+                $"SELECT * FROM bone_marks WHERE type=? AND value IN ({FamilyPlaceHolders})",
                 arguments
             );
         }
@@ -137,7 +149,7 @@ namespace Plugins.orm.Servers
                 }
             );
 
-            _bonemarkIdsDeleted.Clear();
+            Clear();
         }
 
         /// <summary>
@@ -166,7 +178,7 @@ namespace Plugins.orm.Servers
 
             Family = familyText.Split(';').Select(int.Parse).ToArray();
             OrderNum = nextIndex;
-            _bonemarks.Clear();
+            Clear();
             return true;
         }
 
@@ -183,7 +195,7 @@ namespace Plugins.orm.Servers
 
             var planeValues = DB.QueryScalars<int>(
                 "SELECT plane_value FROM bone_marks " +
-                $"WHERE plane_value IS NOT NULL AND type=1 AND value IN ({Placeholders})",
+                $"WHERE plane_value IS NOT NULL AND type=1 AND value IN ({FamilyPlaceHolders})",
                 Family.Select(e => (object)e).ToArray()
             );
 

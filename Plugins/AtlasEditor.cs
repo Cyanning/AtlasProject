@@ -247,7 +247,6 @@ namespace Plugins
         private void SwitchBonemark()
         {
             _boneMarkManager.SwitchBonemarkMode();
-            _boneMarkManager.SetBonemark();
         }
 
         // 更新显示的数据
