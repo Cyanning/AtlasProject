@@ -213,7 +213,7 @@ namespace Plugins
         private void SwitchBonemarkMode()
         {
             _boneMarkManager.SwitchBonemarkMode();
-            _bones.Clear();
+            _bones.ClearBonemarksCache();
             _markIndex = -1;
             InfomationDisplay($"切换到标志类型: {_boneMarkManager.MarkType}");
         }
@@ -264,8 +264,9 @@ namespace Plugins
                 if (_bones.SaveUpdateMark(_bonemark, ref _markIndex))
                 {
                     _bonemark = null;
-                    InfomationDisplay("当前点位已添加");
+                    InfomationDisplay("当前目标点位已添加");
                 }
+                InfomationDisplay("当前目标点位添加失败");
             }
             else if (HasHistory)
             {
@@ -283,11 +284,11 @@ namespace Plugins
             if (HasHistory)
             {
                 _bones.DeleteMark(_markIndex);
-                InfomationDisplay("该条记录已删除");
                 if (_markIndex > 0)
                 {
                     _markIndex--;
                 }
+                InfomationDisplay("该条记录已删除");
             }
             else
             {
@@ -311,10 +312,10 @@ namespace Plugins
 
         private void SaveBonemarks()
         {
-            _bones.SaveAllBonemarks();
+            var info = _bones.SaveAllBonemarks();
             _bonemark = null;
-            _markIndex = -1;
-            InfomationDisplay("所有标志已保存");
+
+            InfomationDisplay(string.IsNullOrEmpty(info) ? "所有标志已保存" : $"保存失败: {info}");
         }
 
         private bool MatchNewOld()
@@ -352,7 +353,7 @@ namespace Plugins
             if (HasClicked)
             {
                 _cilckedText.color = MatchNewOld()
-                    ? new Color( 0.45246f, 0.74343f, 0.2714f, 1.0f)
+                    ? new Color(0.45246f, 0.74343f, 0.2714f, 1.0f)
                     : Color.white;
 
                 _cilckedText.text = string.Join("\n",

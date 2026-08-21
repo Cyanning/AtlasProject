@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Plugins.orm.Models;
+using UnityEngine;
 
 namespace Plugins.orm.Servers
 {
@@ -94,7 +95,7 @@ namespace Plugins.orm.Servers
         /// <summary>
         /// 清空骨性标志和被删除的标志的缓存
         /// </summary>
-        public void Clear()
+        public void ClearBonemarksCache()
         {
             _bonemarks.Clear();
             _bonemarkIdsDeleted.Clear();
@@ -124,18 +125,47 @@ namespace Plugins.orm.Servers
         /// <summary>
         /// 保存 Bonemarks 集合中的全部对象。Id 为 0 时新增，否则按 Id 更新。
         /// </summary>
-        public void SaveAllBonemarks()
+        /// <returns>错误信息</returns>
+        public string SaveAllBonemarks()
         {
-            if (_bonemarks == null)
-                return;
+            if (_bonemarks.Count == 0)
+                return "无可保存的信息";
+
+            // 检查是否存在重复的信息
+            // type, value, color/plane_value 三者作为联合索引必须唯一，不在数据库建立真实索引是避免update时报错
+            var checkDict = new Dictionary<string, int>();
+            var indexSkipped = new HashSet<int>();
+            for (var i = 0; i < _bonemarks.Count; i++)
+            {
+                var bonemark = _bonemarks[i];
+                string key;
+
+                if (bonemark.BePainting)
+                {
+                    key = $"{bonemark.Type}-{bonemark.Value}-{bonemark.Color}";
+                }
+                else if (bonemark.BeForamen)
+                {
+                    key = $"{bonemark.Type}-{bonemark.Value}-{bonemark.PlaneValue}";
+                }
+                else
+                {
+                    return "骨性标志列表中包含错误对象";
+                }
+
+                if (checkDict.TryAdd(key, i)) continue;
+
+                indexSkipped.Add(checkDict[key]);
+                indexSkipped.Add(i);
+            }
 
             DB.RunInTransaction(
                 () => {
-                    foreach (var bonemark in _bonemarks)
+                    for (var i = 0; i < _bonemarks.Count; i++)
                     {
-                        if (bonemark == null)
-                            throw new InvalidOperationException("骨性标志集合中存在空对象。");
+                        if (indexSkipped.Contains(i)) continue;
 
+                        var bonemark = _bonemarks[i];
                         if (bonemark.Id == 0)
                             DB.Insert(bonemark);
                         else
@@ -146,10 +176,14 @@ namespace Plugins.orm.Servers
                     {
                         DB.Delete<Bonemarks>(id);
                     }
+
+                    _bonemarkIdsDeleted.Clear();
                 }
             );
 
-            Clear();
+            return indexSkipped.Count > 0
+                ? $"重复项索引: {string.Join(",", indexSkipped)}"
+                : null;
         }
 
         /// <summary>
@@ -178,7 +212,7 @@ namespace Plugins.orm.Servers
 
             Family = familyText.Split(';').Select(int.Parse).ToArray();
             OrderNum = nextIndex;
-            Clear();
+            ClearBonemarksCache();
             return true;
         }
 
