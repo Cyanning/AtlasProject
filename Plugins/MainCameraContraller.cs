@@ -43,22 +43,22 @@ namespace Plugins
             }
 
             var moveStep = GetMoveStep();
-            if (Input.GetKey(KeyCode.LeftArrow))
+            if (Input.GetKey(KeyCode.A))
             {
                 transform.position += transform.right * moveStep;
             }
 
-            if (Input.GetKey(KeyCode.RightArrow))
+            if (Input.GetKey(KeyCode.D))
             {
                 transform.position -= transform.right * moveStep;
             }
 
-            if (Input.GetKey(KeyCode.UpArrow))
+            if (Input.GetKey(KeyCode.W))
             {
                 transform.position -= transform.up * moveStep;
             }
 
-            if (Input.GetKey(KeyCode.DownArrow))
+            if (Input.GetKey(KeyCode.S))
             {
                 transform.position += transform.up * moveStep;
             }

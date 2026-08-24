@@ -94,12 +94,12 @@ namespace Plugins
                     // 底部操作面板
                     case "LastMarkDataBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(
-                            () => SwitchMarkIndex(false)
+                            () => SwitchMarkIndex(-1)
                         );
                         break;
                     case "NextMarkDataBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(
-                            () => SwitchMarkIndex(true)
+                            () => SwitchMarkIndex(1)
                         );
                         break;
                     case "LoadMarksDataBtn":
@@ -112,7 +112,7 @@ namespace Plugins
                         userInterface.GetComponent<Button>().onClick.AddListener(SwitchBonemarkMode);
                         break;
                     case "ResetCarmeraBtn":
-                        userInterface.GetComponent<Button>().onClick.AddListener(ResetAtlasCarmera);
+                        userInterface.GetComponent<Button>().onClick.AddListener(ResetToMarkCarmera);
                         break;
                     case "AddBonemarkBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(AddBonemark);
@@ -136,17 +136,29 @@ namespace Plugins
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Return))
+            if (Input.GetKeyUp(KeyCode.F))
             {
                 AddBonemark();
             }
-            else if (Input.GetKeyDown(KeyCode.PageUp))
+            else  if (Input.GetKeyUp(KeyCode.E))
             {
-                SwitchMarkIndex(false);
+                SwitchMarkIndex(1);
             }
-            else if (Input.GetKeyDown(KeyCode.PageDown))
+            else if (Input.GetKeyUp(KeyCode.Q))
             {
-                SwitchMarkIndex(true);
+                SwitchMarkIndex(-1);
+            }
+            else if (Input.GetKeyUp(KeyCode.R))
+            {
+                ResetToMarkCarmera();
+            }
+            else if (Input.GetKeyUp(KeyCode.C))
+            {
+                SwitchMarkIndex(_bones.BonemarksList.Count);
+            }
+            else if (Input.GetKeyDown(KeyCode.X) || Input.GetKeyUp(KeyCode.X))
+            {
+                SwitchToIdentfier();
             }
         }
 
@@ -227,9 +239,13 @@ namespace Plugins
             InfomationDisplay("加载数据库成功");
         }
 
-        private void SwitchMarkIndex(bool advanceOrBack)
+        /// <summary>
+        /// 切换当前标志
+        /// </summary>
+        /// <param name="vector">相对当前标志变换的index数值</param>
+        private void SwitchMarkIndex(int vector)
         {
-            _markIndex += advanceOrBack ? 1 : -1;
+            _markIndex += vector;
             var len = _bones.BonemarksList.Count;
 
             if (_markIndex >= len)
@@ -297,7 +313,7 @@ namespace Plugins
         }
 
         // 视角复位
-        private void ResetAtlasCarmera()
+        private void ResetToMarkCarmera()
         {
             if (HasHistory)
             {
