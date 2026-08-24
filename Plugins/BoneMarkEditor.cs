@@ -334,7 +334,7 @@ namespace Plugins
             ignoreRepeating = false;
             _bonemark = null;
 
-            InfomationDisplay("已保存"  + (string.IsNullOrEmpty(info) ? "" : $" - 警告: {info}"));
+            InfomationDisplay("已保存" + (string.IsNullOrEmpty(info) ? "" : $" - 警告: {info}"));
         }
 
         private bool MatchNewOld()
@@ -375,12 +375,20 @@ namespace Plugins
                     ? new Color(0.45246f, 0.74343f, 0.2714f, 1.0f)
                     : Color.white;
 
-                _cilckedText.text = string.Join("\n",
-                    $"Type: {_bonemark.Type}",
-                    $"Value: {_bonemark.Value}",
-                    $"Color: {_bonemark.Color}, Plane Value: {_bonemark.PlaneValue}",
-                    $"Uv: {_bonemark.Uvx}, {_bonemark.Uvy}"
-                );
+                var text = $"Type: {_bonemark.Type}" +
+                           $"\nValue: {_bonemark.Value}";
+
+                if (_bonemark.BePainting)
+                {
+                    text += $"\nColor: {_bonemark.Color}" +
+                            $"\nUv: {_bonemark.Uvx}, {_bonemark.Uvy}";
+                }
+                else if (_bonemark.BeForamen)
+                {
+                    text += $"\nPlane Value: {_bonemark.PlaneValue}";
+                }
+
+                _cilckedText.text = text;
             }
             else
             {
@@ -395,14 +403,23 @@ namespace Plugins
                     ? new Color(0.6039216f, 0.8117647f, 1.0f, 1.0f)
                     : Color.white;
 
-                _historyText.text = string.Join("\n",
-                    $"Id: {mark.Id}, Type: {mark.Type}",
-                    $"Value: {mark.Value}, Name: {mark.Name}",
-                    $"Color: {mark.Color}, Plane Value: {mark.PlaneValue}",
-                    $"Uv: {mark.Uvx}, {mark.Uvy}",
-                    $"Position: {mark.CameraPositionX}, {mark.CameraPositionY}, {mark.CameraPositionZ}",
-                    $"Rotation: {mark.CameraRotationX}, {mark.CameraRotationY}, {mark.CameraRotationZ}"
-                );
+                var text = $"Id: {mark.Id}, Type: {mark.Type}" +
+                           $"\nValue: {mark.Value}, Name: {mark.Name}";
+
+                if (mark.BePainting)
+                {
+                    text += $"\nColor: {mark.Color}" +
+                            $"\nUv: {mark.Uvx}, {mark.Uvy}";
+                }
+                else if (mark.BeForamen)
+                {
+                    text += $"\nPlane Value: {mark.PlaneValue}";
+                }
+
+                text += $"\nPosition: {mark.CameraPositionX}, {mark.CameraPositionY}, {mark.CameraPositionZ}" +
+                        $"\nRotation: {mark.CameraRotationX}, {mark.CameraRotationY}, {mark.CameraRotationZ}";
+
+                _historyText.text = text;
             }
             else
             {
