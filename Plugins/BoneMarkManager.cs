@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using System.IO;
 using System.Linq;
@@ -131,9 +132,18 @@ namespace Plugins
         /// <summary>
         /// 循环设置当前骨性标志类型
         /// </summary>
-        public void SwitchBonemarkMode()
+        /// <param name="markType">传入则设置为指定骨性标志类型，不传入则循环展示标志类型</param>
+        public void SwitchBonemarkMode(int markType = -1)
         {
-            MarkType += MarkType < MarkTypeRange ? 1 : -MarkTypeRange;
+            if (markType is >= 0 and <= MarkTypeRange)
+            {
+                MarkType = markType;
+            }
+            else
+            {
+                MarkType += MarkType < MarkTypeRange ? 1 : MarkTypeRange;
+            }
+
             SetBonemark();
         }
 

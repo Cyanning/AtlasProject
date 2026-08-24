@@ -110,7 +110,7 @@ namespace Plugins
                         userInterface.GetComponent<Button>().onClick.AddListener(SwitchToIdentfier);
                         break;
                     case "ChangeBonesBtn":
-                        userInterface.GetComponent<Button>().onClick.AddListener(SwitchBonemarkMode);
+                        userInterface.GetComponent<Button>().onClick.AddListener(() => SwitchBonemarkMode());
                         break;
                     case "ResetCarmeraBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(ResetToMarkCarmera);
@@ -135,7 +135,7 @@ namespace Plugins
             InfomationDisplay("点击任意骨性标志生成数据");
         }
 
-        private void Update()
+        private void LateUpdate()
         {
             if (Input.GetKeyUp(KeyCode.F))
             {
@@ -157,9 +157,29 @@ namespace Plugins
             {
                 SwitchMarkIndex(_bones.BonemarksList.Count);
             }
-            else if (Input.GetKeyDown(KeyCode.X) || Input.GetKeyUp(KeyCode.X))
+            else if (Input.GetKeyDown(KeyCode.X))
+            {
+                LoadingMarksData();
+            }
+            else if (Input.GetKeyDown(KeyCode.V))
+            {
+                SaveBonemarks();
+            }
+            else if (Input.GetKeyDown(KeyCode.Z) || Input.GetKeyUp(KeyCode.Z))
             {
                 SwitchToIdentfier();
+            }
+            else
+            {
+                for (var i = 0; i < 5; i++)
+                {
+                    // KeyCode.Alpha0 到 Alpha9 枚举值是连续的
+                    var key = KeyCode.Alpha0 + i;
+                    if (Input.GetKeyUp(key))
+                    {
+                        SwitchBonemarkMode(i);
+                    }
+                }
             }
         }
 
@@ -223,9 +243,9 @@ namespace Plugins
         /// <summary>
         /// 切换骨骼标志类型
         /// </summary>
-        private void SwitchBonemarkMode()
+        private void SwitchBonemarkMode(int markType = -1)
         {
-            _boneMarkManager.SwitchBonemarkMode();
+            _boneMarkManager.SwitchBonemarkMode(markType);
             _bones.ClearBonemarksCache();
             _markIndex = -1;
             InfomationDisplay($"切换到标志类型: {_boneMarkManager.MarkType}");

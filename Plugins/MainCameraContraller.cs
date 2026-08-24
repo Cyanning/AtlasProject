@@ -19,7 +19,7 @@ namespace Plugins
             _cam = GetComponent<Camera>();
         }
 
-        private void LateUpdate()
+        private void Update()
         {
             var scroll = Input.GetAxis("Mouse ScrollWheel");
             if (scroll > 0.0f && _zoomTimes < ZoomMaxTimes)

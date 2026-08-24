@@ -184,8 +184,10 @@ namespace Plugins.orm.Servers
 
             if (indexSkipped.Count > 0)
             {
-                return $"重复项索引: {string.Join(",", indexSkipped)}" + (ignoreRepeating ? "（已忽略）" : "（未添加）");
+                var indexItems = string.Join(",", indexSkipped.Select(idx => idx + 1));
+                return $"重复项索引: {indexItems}" + (ignoreRepeating ? "（已忽略）" : "（未添加）");
             }
+
             return null;
         }
 
