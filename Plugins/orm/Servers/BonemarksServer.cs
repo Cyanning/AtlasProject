@@ -124,8 +124,9 @@ namespace Plugins.orm.Servers
         /// <summary>
         /// 保存 Bonemarks 集合中的全部对象。Id 为 0 时新增，否则按 Id 更新。
         /// </summary>
+        ///<param name="ignoreRepeating">是否忽略重复项</param>
         /// <returns>错误信息</returns>
-        public string SaveAllBonemarks()
+        public string SaveAllBonemarks(bool ignoreRepeating = false)
         {
             if (_bonemarks.Count == 0)
                 return "无可保存的信息";
@@ -162,7 +163,8 @@ namespace Plugins.orm.Servers
                 () => {
                     for (var i = 0; i < _bonemarks.Count; i++)
                     {
-                        if (indexSkipped.Contains(i)) continue;
+                        if (!ignoreRepeating && indexSkipped.Contains(i))
+                            continue;
 
                         var bonemark = _bonemarks[i];
                         if (bonemark.Id == 0)
@@ -180,9 +182,11 @@ namespace Plugins.orm.Servers
                 }
             );
 
-            return indexSkipped.Count > 0
-                ? $"重复项索引: {string.Join(",", indexSkipped)}"
-                : null;
+            if (indexSkipped.Count > 0)
+            {
+                return $"重复项索引: {string.Join(",", indexSkipped)}" + (ignoreRepeating ? "（已忽略）" : "（未添加）");
+            }
+            return null;
         }
 
         /// <summary>

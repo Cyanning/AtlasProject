@@ -13,6 +13,7 @@ namespace Plugins
     {
         public int boneOrderNum;
         public string currentMarkName;
+        public bool ignoreRepeating;
 
         // 数据
         private Bonemarks _bonemark; // 当前点击的骨标
@@ -140,7 +141,7 @@ namespace Plugins
             {
                 AddBonemark();
             }
-            else  if (Input.GetKeyUp(KeyCode.E))
+            else if (Input.GetKeyUp(KeyCode.E))
             {
                 SwitchMarkIndex(1);
             }
@@ -328,10 +329,12 @@ namespace Plugins
 
         private void SaveBonemarks()
         {
-            var info = _bones.SaveAllBonemarks();
+            var info = _bones.SaveAllBonemarks(ignoreRepeating);
+            // 每次使用后重置 防止错误保存
+            ignoreRepeating = false;
             _bonemark = null;
 
-            InfomationDisplay(string.IsNullOrEmpty(info) ? "所有标志已保存" : $"保存失败: {info}");
+            InfomationDisplay("已保存"  + (string.IsNullOrEmpty(info) ? "" : $" - 警告: {info}"));
         }
 
         private bool MatchNewOld()
