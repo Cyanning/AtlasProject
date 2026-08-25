@@ -1,7 +1,6 @@
 *.meta
 Resources
 model
-Atlas_database
 Plugins/DOTween
 Scenes
 StreamingAssets

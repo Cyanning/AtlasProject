@@ -7,7 +7,8 @@ namespace Plugins.models
 {
     public abstract class TextAssetFactory<T> where T : class
     {
-        protected virtual string RootFolder => "TemporaryFiles";
+        protected virtual string RootFolder => "D:/AnatomyLibrary";
+        protected virtual string ClassFolder => "";
         protected virtual string FilePrefix => "";
         protected virtual string FileExtension => ".json";
         protected virtual Encoding FileEncoding => Encoding.UTF8;
@@ -30,23 +31,24 @@ namespace Plugins.models
                 throw new ArgumentException("Asset name is empty.", nameof(assetName));
             }
 
-            var assetsFolder = Path.Combine(
-                Application.dataPath, RootFolder, Path.GetDirectoryName(assetName) ?? ""
-            );
+            var assetsFolder = Path.Combine(RootFolder, ClassFolder, Path.GetDirectoryName(assetName) ?? "");
 
             if (!Directory.Exists(assetsFolder) && autoCreate)
             {
                 Directory.CreateDirectory(assetsFolder);
             }
 
-            var fileName = Path.GetFileNameWithoutExtension(assetName);
-
-            if (!(string.IsNullOrEmpty(FilePrefix) || fileName.StartsWith(FilePrefix)))
+            if (Path.GetExtension(assetName) != FileExtension)
             {
-                fileName = FilePrefix + fileName;
+                assetName = Path.GetFileNameWithoutExtension(assetName) + FileExtension;
             }
 
-            return Path.Combine(assetsFolder, $"{fileName}{FileExtension}");
+            if (!assetName.StartsWith(FilePrefix))
+            {
+                assetName = FilePrefix + assetName;
+            }
+
+            return Path.Combine(assetsFolder, assetName);
         }
 
         protected bool LoadAsset(string assetName, out T item)
@@ -75,7 +77,6 @@ namespace Plugins.models
             ApplyUniformName(Path.GetFileNameWithoutExtension(assetPath), item);
 
             File.WriteAllText(Path.GetFullPath(assetPath), JsonUtility.ToJson(item), FileEncoding);
-            // AssetDatabase.ImportAsset(assetPath);
         }
     }
 }

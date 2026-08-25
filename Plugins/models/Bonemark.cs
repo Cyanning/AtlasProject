@@ -67,8 +67,8 @@ namespace Plugins.models
 
     public sealed class BoneFactory : TextAssetFactory<Bones>
     {
+        protected override string ClassFolder => "Bonemarks";
         protected override string FilePrefix => "Bonemark_";
-        protected override string RootFolder => "TemporaryFiles/Bonemarks";
 
         protected override string GetDefaultAssetName(Bones item)
         {

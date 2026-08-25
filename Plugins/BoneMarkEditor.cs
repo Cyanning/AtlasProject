@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,6 +13,8 @@ namespace Plugins
     public class BoneMarkEditor : MonoBehaviour, ICanvasEditor
     {
         public int boneOrderNum;
+        private const string OrderNumTempPath = @"D:\AnatomyLibrary\Bonemarks\BoneMarkEditorTemp\cogfigInit.json";
+
         public string currentMarkName;
         public bool ignoreRepeating;
 
@@ -46,22 +49,14 @@ namespace Plugins
         private void Awake()
         {
             // 初始化数据
-            _bones = new BonemarksServer(0);
-            if (_bones.TryGenerateBonemarkView(boneOrderNum) || _bones.TryGenerateBonemarkView(0))
-            {
-                boneOrderNum = _bones.OrderNum;
-            }
-            else
-            {
-                Debug.Log("骨骼视图数据获取失败");
-            }
+            var initData = ReadBoneOrderNum();
+            _bones = new BonemarksServer(initData.gender, initData.orderNum);
         }
 
         private void Start()
         {
             // 绑定主相机脚本
             _camCtrl = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<MainCameraContraller>();
-            _boneMarkManager = gameObject.AddComponent<BoneMarkManager>();
 
             //按钮绑定事件
             for (var i = 0; i < transform.childCount; i++)
@@ -72,12 +67,12 @@ namespace Plugins
                     // 顶部按钮与信息框
                     case "LastBoneFamilyBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(
-                            () => SwitchBoneFamily(false)
+                            () => SwitchBoneFamily(-1)
                         );
                         break;
                     case "NextBoneFamilyBtn":
                         userInterface.GetComponent<Button>().onClick.AddListener(
-                            () => SwitchBoneFamily(true)
+                            () => SwitchBoneFamily(1)
                         );
                         break;
                     case "TipsInfo":
@@ -130,8 +125,10 @@ namespace Plugins
                 }
             }
 
-            // 界面显示初始化
+            // 骨性标志显示初始化
+            _boneMarkManager = gameObject.AddComponent<BoneMarkManager>();
             _markIndex = -1;
+            boneOrderNum = _bones.OrderNum;
             InfomationDisplay("点击任意骨性标志生成数据");
         }
 
@@ -212,22 +209,37 @@ namespace Plugins
             InfomationDisplay();
         }
 
-        private void SwitchBoneFamily(bool advanceOrBack)
+        private void SwitchBoneFamily(int vector)
         {
-            if (_bones.TryGenerateBonemarkView(_bones.OrderNum + (advanceOrBack ? 1 : -1)))
+            int nextIndex;
+            // 编号变量大于输入的变化值
+            if (boneOrderNum != _bones.OrderNum)
             {
+                nextIndex = boneOrderNum;
+            }
+            else
+            {
+                nextIndex = _bones.OrderNum + vector;
+            }
+
+            if (_bones.TryGenerateBonemarkView(nextIndex))
+            {
+                // 数据初始化
                 _boneMarkManager.BoneFamilyChanged();
                 _camCtrl.ResetZoomState();
                 _markIndex = -1;
                 _bonemark = null;
                 currentMarkName = "";
                 boneOrderNum = _bones.OrderNum;
+
+                //状态输出
+                SaveBoneOrderNum();
                 InfomationDisplay($"第 {_bones.OrderNum + 1} 个骨骼族群已加载");
                 Debug.Log($"加载模型 {string.Join(",", _bones.Family)}");
             }
             else
             {
-                InfomationDisplay($"{(advanceOrBack ? "下" : "上")}一个骨骼族群加载失败");
+                InfomationDisplay("骨骼族群加载失败");
             }
         }
 
@@ -446,6 +458,39 @@ namespace Plugins
                 _historyText.color = Color.white;
                 _historyText.text = "<新建>";
             }
+        }
+
+        private void SaveBoneOrderNum()
+        {
+            if (!File.Exists(OrderNumTempPath))
+            {
+                var folder = Path.GetDirectoryName(OrderNumTempPath);
+
+                if (!string.IsNullOrEmpty(folder))
+                    Directory.CreateDirectory(folder);
+                else
+                    return;
+            }
+
+            File.WriteAllText(OrderNumTempPath, $"{_bones.Gender};{boneOrderNum}");
+        }
+
+        private static (int gender, int orderNum) ReadBoneOrderNum()
+        {
+            var genedr = 0;
+            var orderNum = 0;
+
+            if (File.Exists(OrderNumTempPath))
+            {
+                var text = File.ReadAllText(OrderNumTempPath).Split(";");
+                if (text.Length == 2)
+                {
+                    genedr = int.Parse(text[0]);
+                    orderNum = int.Parse(text[1]);
+                }
+            }
+
+            return (genedr, orderNum);
         }
     }
 }

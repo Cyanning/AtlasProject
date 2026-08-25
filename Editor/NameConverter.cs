@@ -29,7 +29,7 @@ namespace Editor
 
         private MaterialWrapper ConvertMaterial(MaterialWrapper oldMaterial)
         {
-            return new()
+            return new MaterialWrapper
             {
                 name = ConvertName(oldMaterial.name), albe = ConvertName(oldMaterial.albe)
                 , normal = ConvertName(oldMaterial.normal)

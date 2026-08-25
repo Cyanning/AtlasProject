@@ -155,6 +155,7 @@ namespace Plugins.models
     {
         // 专属内容重写
         protected override string FilePrefix => "Atlas_";
+        protected override string ClassFolder => "AtlasData";
 
         protected override string GetDefaultAssetName(AtlasItem item)
         {

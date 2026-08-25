@@ -21,7 +21,7 @@ namespace Plugins.orm.Servers
         // sql通配符
         private string FamilyPlaceHolders => string.Join(",", Enumerable.Repeat("?", Family.Length));
 
-        public BonemarksServer(int gender)
+        public BonemarksServer(int gender, int orderNum)
         {
             if (gender is not 0 and not 1)
             {
@@ -31,6 +31,11 @@ namespace Plugins.orm.Servers
             Gender = gender;
             _bonemarks = new List<Bonemarks>();
             _bonemarkIdsDeleted = new List<int>();
+
+            if (!TryGenerateBonemarkView(orderNum) && !TryGenerateBonemarkView(0))
+            {
+                throw new ArgumentOutOfRangeException(nameof(orderNum), orderNum, "找不到对应数据");
+            }
         }
 
         /// <summary>
