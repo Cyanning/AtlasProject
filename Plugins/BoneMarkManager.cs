@@ -402,18 +402,17 @@ namespace Plugins
         /// <returns>是否匹配</returns>
         public bool ColorCodeVerification(Bonemarks bonemark)
         {
-            if (bonemark.Type != MarkType || !bonemark.BePainting) return false;
+            if (bonemark.Type != MarkType || !bonemark.BePainting)
+                return false;
 
-            var models = _clickEvent.mObj.GetComponentsInChildren<Transform>();
-
-            foreach (var model in models)
+            foreach (var model in _clickEvent.AllObject.Values)
             {
                 if (!BodyStruct.GetFromPrefab(model.name, out var body) || body.Value != bonemark.Value)
                     continue;
 
                 if (TryGetColorCode(model.gameObject, new Vector2(bonemark.Uvx, bonemark.Uvy), out var color))
                 {
-                    return color == bonemark.Color;
+                    return IsSameColor(bonemark.Color, color);
                 }
             }
 
