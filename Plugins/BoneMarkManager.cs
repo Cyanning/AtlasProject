@@ -149,8 +149,6 @@ namespace Plugins
 
         private void SetBonemark()
         {
-            Debug.Log("执行了SetBonemark");
-
             if (_boneRenderers == null || _boneRenderers.Length == 0)
             {
                 CacheMaterials();

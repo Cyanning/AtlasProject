@@ -137,28 +137,26 @@ namespace Plugins
             if (Input.GetKeyUp(KeyCode.Q))
             {
                 SwitchMarkIndex(-1);
+                ResetToMarkCarmera();
             }
             else if (Input.GetKeyUp(KeyCode.E))
             {
                 SwitchMarkIndex(1);
-            }
-            else if (Input.GetKeyUp(KeyCode.R))
-            {
                 ResetToMarkCarmera();
             }
-            else if (Input.GetKeyDown(KeyCode.F))
+            else if (Input.GetKeyDown(KeyCode.R))
             {
                 AddBonemark();
             }
-            else if (Input.GetKeyDown(KeyCode.C))
+            else if (Input.GetKeyDown(KeyCode.F))
             {
                 SaveBonemarks();
             }
-            else if (Input.GetKeyUp(KeyCode.Z))
+            else if (Input.GetKeyUp(KeyCode.N))
             {
                 SwitchMarkIndex(_bones.BonemarksList.Count);
             }
-            else if (Input.GetKeyDown(KeyCode.X) || Input.GetKeyUp(KeyCode.X))
+            else if (Input.GetKeyDown(KeyCode.M) || Input.GetKeyUp(KeyCode.M))
             {
                 SwitchToIdentfier();
             }
@@ -359,8 +357,6 @@ namespace Plugins
             {
                 _boneMarkManager.InitCameraTransform(new BodyStruct(_bones.Family[0]));
             }
-
-            Debug.Log($"Test Mark Type: {_boneMarkManager.MarkType}");
         }
 
         private void SaveBonemarks()
