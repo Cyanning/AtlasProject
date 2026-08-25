@@ -36,9 +36,6 @@ namespace Plugins
         // 骨性标志控制脚本
         private BoneMarkManager _boneMarkManager;
 
-        // 键盘控制公共cd
-        private float _nextKeyboardInputTime = float.NegativeInfinity;
-
         // 接口
         public int ModelGender => _bones.Gender;
         public string[] ModelDisplayed => _bones.Family.Select(static e => e.ToString()).ToArray();
@@ -137,11 +134,6 @@ namespace Plugins
 
         private void LateUpdate()
         {
-            if (Time.unscaledTime < _nextKeyboardInputTime)
-                return;
-
-            var handled = false;
-
             if (Input.GetKeyUp(KeyCode.Q))
             {
                 SwitchMarkIndex(-1);
@@ -150,27 +142,23 @@ namespace Plugins
             {
                 SwitchMarkIndex(1);
             }
-            else if (Input.GetKeyUp(KeyCode.Space))
+            else if (Input.GetKeyUp(KeyCode.R))
             {
                 ResetToMarkCarmera();
-                handled = true;
-            }
-            else if (Input.GetKeyDown(KeyCode.R))
-            {
-                AddBonemark();
-                handled = true;
             }
             else if (Input.GetKeyDown(KeyCode.F))
             {
-                SaveBonemarks();
-                handled = true;
+                AddBonemark();
             }
-            else if (Input.GetKeyUp(KeyCode.T))
+            else if (Input.GetKeyDown(KeyCode.C))
+            {
+                SaveBonemarks();
+            }
+            else if (Input.GetKeyUp(KeyCode.Z))
             {
                 SwitchMarkIndex(_bones.BonemarksList.Count);
-                handled = true;
             }
-            else if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyUp(KeyCode.Tab))
+            else if (Input.GetKeyDown(KeyCode.X) || Input.GetKeyUp(KeyCode.X))
             {
                 SwitchToIdentfier();
             }
@@ -188,9 +176,6 @@ namespace Plugins
                     }
                 }
             }
-
-            if (handled)
-                _nextKeyboardInputTime = Time.unscaledTime + 0.5f;
         }
 
         // 激活一个新骨性标注点
@@ -374,6 +359,8 @@ namespace Plugins
             {
                 _boneMarkManager.InitCameraTransform(new BodyStruct(_bones.Family[0]));
             }
+
+            Debug.Log($"Test Mark Type: {_boneMarkManager.MarkType}");
         }
 
         private void SaveBonemarks()

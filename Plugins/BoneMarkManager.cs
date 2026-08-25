@@ -140,7 +140,8 @@ namespace Plugins
             }
             else
             {
-                MarkType += MarkType < MarkTypeRange ? 1 : MarkTypeRange;
+                // 类型值循环
+                MarkType += MarkType < MarkTypeRange ? 1 : -MarkTypeRange;
             }
 
             SetBonemark();
@@ -148,6 +149,8 @@ namespace Plugins
 
         private void SetBonemark()
         {
+            Debug.Log("执行了SetBonemark");
+
             if (_boneRenderers == null || _boneRenderers.Length == 0)
             {
                 CacheMaterials();
