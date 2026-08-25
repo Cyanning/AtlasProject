@@ -36,6 +36,9 @@ namespace Plugins
         // 骨性标志控制脚本
         private BoneMarkManager _boneMarkManager;
 
+        // 键盘控制公共cd
+        private float _nextKeyboardInputTime = float.NegativeInfinity;
+
         // 接口
         public int ModelGender => _bones.Gender;
         public string[] ModelDisplayed => _bones.Family.Select(static e => e.ToString()).ToArray();
@@ -134,6 +137,11 @@ namespace Plugins
 
         private void LateUpdate()
         {
+            if (Time.unscaledTime < _nextKeyboardInputTime)
+                return;
+
+            var handled = false;
+
             if (Input.GetKeyUp(KeyCode.Q))
             {
                 SwitchMarkIndex(-1);
@@ -145,18 +153,22 @@ namespace Plugins
             else if (Input.GetKeyUp(KeyCode.Space))
             {
                 ResetToMarkCarmera();
+                handled = true;
             }
             else if (Input.GetKeyDown(KeyCode.R))
             {
                 AddBonemark();
+                handled = true;
             }
             else if (Input.GetKeyDown(KeyCode.F))
             {
                 SaveBonemarks();
+                handled = true;
             }
             else if (Input.GetKeyUp(KeyCode.T))
             {
                 SwitchMarkIndex(_bones.BonemarksList.Count);
+                handled = true;
             }
             else if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyUp(KeyCode.Tab))
             {
@@ -176,6 +188,9 @@ namespace Plugins
                     }
                 }
             }
+
+            if (handled)
+                _nextKeyboardInputTime = Time.unscaledTime + 0.5f;
         }
 
         // 激活一个新骨性标注点
