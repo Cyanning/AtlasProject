@@ -311,7 +311,10 @@ namespace Plugins
                     _bonemark = null;
                     InfomationDisplay("当前目标点位已添加");
                 }
-                InfomationDisplay("当前目标点位添加失败");
+                else
+                {
+                    InfomationDisplay("当前目标点位添加失败");
+                }
             }
             else if (HasHistory)
             {
@@ -320,7 +323,7 @@ namespace Plugins
             }
             else
             {
-                InfomationDisplay("无法执行添加");
+                InfomationDisplay("无效的添加");
             }
         }
 
