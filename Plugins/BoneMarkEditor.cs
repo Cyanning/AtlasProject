@@ -137,26 +137,28 @@ namespace Plugins
             if (Input.GetKeyUp(KeyCode.Q))
             {
                 SwitchMarkIndex(-1);
-                ResetToMarkCarmera();
             }
             else if (Input.GetKeyUp(KeyCode.E))
             {
                 SwitchMarkIndex(1);
-                ResetToMarkCarmera();
             }
             else if (Input.GetKeyDown(KeyCode.R))
             {
-                AddBonemark();
+                ResetToMarkCarmera();
             }
             else if (Input.GetKeyDown(KeyCode.F))
             {
+                AddBonemark();
+            }
+            else if (Input.GetKeyDown(KeyCode.C))
+            {
                 SaveBonemarks();
             }
-            else if (Input.GetKeyUp(KeyCode.N))
+            else if (Input.GetKeyUp(KeyCode.X))
             {
                 SwitchMarkIndex(_bones.BonemarksList.Count);
             }
-            else if (Input.GetKeyDown(KeyCode.M) || Input.GetKeyUp(KeyCode.M))
+            else if (Input.GetKeyDown(KeyCode.Z) || Input.GetKeyUp(KeyCode.Z))
             {
                 SwitchToIdentfier();
             }
