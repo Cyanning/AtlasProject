@@ -273,6 +273,7 @@ namespace Plugins
             _boneMarkManager.SwitchBonemarkMode(markType);
             _bones.ClearBonemarksCache();
             _markIndex = -1;
+            _bonemark = null;
             InfomationDisplay($"切换到标志类型: {_boneMarkManager.MarkType}");
         }
 
