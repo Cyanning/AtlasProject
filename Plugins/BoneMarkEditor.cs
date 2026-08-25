@@ -154,15 +154,11 @@ namespace Plugins
             {
                 SwitchMarkIndex(_bones.BonemarksList.Count);
             }
-            else if (Input.GetKeyDown(KeyCode.X))
-            {
-                LoadingMarksData();
-            }
             else if (Input.GetKeyDown(KeyCode.V))
             {
                 SaveBonemarks();
             }
-            else if (Input.GetKeyDown(KeyCode.Z) || Input.GetKeyUp(KeyCode.Z))
+            else if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyUp(KeyCode.Tab))
             {
                 SwitchToIdentfier();
             }
@@ -174,7 +170,9 @@ namespace Plugins
                     var key = KeyCode.Alpha0 + i;
                     if (Input.GetKeyUp(key))
                     {
+                        // 直接加载骨性标志和数据
                         SwitchBonemarkMode(i);
+                        LoadingMarksData();
                     }
                 }
             }
