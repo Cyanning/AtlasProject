@@ -137,14 +137,16 @@ namespace Plugins
             if (Input.GetKeyUp(KeyCode.Q))
             {
                 SwitchMarkIndex(-1);
-                ResetToMarkCarmera();
             }
             else if (Input.GetKeyUp(KeyCode.E))
             {
                 SwitchMarkIndex(1);
+            }
+            else if (Input.GetKeyUp(KeyCode.Space))
+            {
                 ResetToMarkCarmera();
             }
-            else if (Input.GetKeyUp(KeyCode.R))
+            else if (Input.GetKeyDown(KeyCode.R))
             {
                 AddBonemark();
             }
