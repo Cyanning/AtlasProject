@@ -134,29 +134,27 @@ namespace Plugins
 
         private void LateUpdate()
         {
-            if (Input.GetKeyUp(KeyCode.F))
+            if (Input.GetKeyUp(KeyCode.Q))
             {
-                AddBonemark();
+                SwitchMarkIndex(-1);
+                ResetToMarkCarmera();
             }
             else if (Input.GetKeyUp(KeyCode.E))
             {
                 SwitchMarkIndex(1);
-            }
-            else if (Input.GetKeyUp(KeyCode.Q))
-            {
-                SwitchMarkIndex(-1);
+                ResetToMarkCarmera();
             }
             else if (Input.GetKeyUp(KeyCode.R))
             {
-                ResetToMarkCarmera();
+                AddBonemark();
             }
-            else if (Input.GetKeyUp(KeyCode.C))
-            {
-                SwitchMarkIndex(_bones.BonemarksList.Count);
-            }
-            else if (Input.GetKeyDown(KeyCode.V))
+            else if (Input.GetKeyDown(KeyCode.F))
             {
                 SaveBonemarks();
+            }
+            else if (Input.GetKeyUp(KeyCode.T))
+            {
+                SwitchMarkIndex(_bones.BonemarksList.Count);
             }
             else if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyUp(KeyCode.Tab))
             {
