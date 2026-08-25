@@ -96,7 +96,7 @@ namespace Plugins
         {
             transform.position = new Vector3(0, 0, -1);
             transform.rotation = Quaternion.Euler(0f, 0f, 0f);
-            _zoomTimes = 0;
+            ResetZoomTimes();
         }
 
         /// <summary>
@@ -111,6 +111,7 @@ namespace Plugins
         {
             _cam.transform.position = new Vector3(pos.x, pos.y, pos.z);
             _cam.transform.rotation = Quaternion.Euler(rot.x, rot.y, rot.z);
+            ResetZoomTimes();
         }
 
         public Vector3 GetMainCameraPostion()
