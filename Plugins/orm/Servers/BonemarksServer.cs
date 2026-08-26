@@ -190,7 +190,7 @@ namespace Plugins.orm.Servers
             if (indexSkipped.Count > 0)
             {
                 var itemRepeating = from i in indexSkipped select _bonemarks[i].Name;
-                var indexItems = string.Join(", ", itemRepeating);
+                var indexItems = string.Join("，", itemRepeating);
                 return $"重复项{(ignoreRepeating ? "（已忽略）" : "（未添加）")}: \n{indexItems}";
             }
 
