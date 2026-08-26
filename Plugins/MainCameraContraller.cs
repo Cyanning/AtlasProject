@@ -7,12 +7,17 @@ namespace Plugins
     {
         private Camera _cam;
 
-        // 平滑缩放参数
-        private int _zoomTimes;
-        private const int ZoomMaxTimes = 64;
-        private const float MaxZoomRatio = 0.08f;
-        private const float MinZoomRatio = 0.0000001f;
-        private const float MaxMoveStep = 0.00002f;
+        // 缩放参数：每次滚轮操作按当前相机到模型中心的距离缩放。
+        private const float ZoomStepRatio = 0.08f;
+        // 防止相机穿过模型中心。
+        private const float MinZoomDistance = 0.0001f;
+
+        // 平滑移动参数
+        private const float MaxMoveStep = 0.00005f;
+        // 达到该距离后使用最大平移步长，距离更远时不再继续增大。
+        private const float MoveFullSpeedDistance = 1f;
+        // 数值越大，靠近模型后的平移步长衰减越快。
+        private const float MoveStepFalloffPower = 1.5f;
 
         private void Start()
         {
@@ -22,45 +27,46 @@ namespace Plugins
         private void Update()
         {
             var scroll = Input.GetAxis("Mouse ScrollWheel");
-            if (scroll > 0.0f && _zoomTimes < ZoomMaxTimes)
+            if (scroll != 0.0f)
             {
                 var toCenter = ClickEvent.RotationCenter - transform.position;
-                var zoomRatio = GetZoomRatio(_zoomTimes);
-                var moveDistance = toCenter.magnitude * zoomRatio;
+                var distanceToCenter = toCenter.magnitude;
 
-                transform.position += toCenter.normalized * moveDistance;
-                _zoomTimes++;
+                // 相机与旋转中心重合时没有有效方向，无法继续缩放。
+                if (distanceToCenter > Mathf.Epsilon)
+                {
+                    var directionToCenter = toCenter / distanceToCenter;
+                    var targetDistance = scroll > 0.0f
+                        ? distanceToCenter * (1f - ZoomStepRatio)
+                        : distanceToCenter / (1f - ZoomStepRatio);
+
+                    if (scroll > 0.0f)
+                    {
+                        targetDistance = Mathf.Max(targetDistance, MinZoomDistance);
+                    }
+
+                    transform.position = ClickEvent.RotationCenter - directionToCenter * targetDistance;
+                }
             }
-            else if (scroll < 0.0f && _zoomTimes > -ZoomMaxTimes)
-            {
-                var toCenter = ClickEvent.RotationCenter - transform.position;
-                var zoomRatio = GetZoomRatio(_zoomTimes - 1);
 
-                // 缩小使用放大的逆运算，使相反方向操作能够回到原距离。
-                var moveDistance = toCenter.magnitude * zoomRatio / (1f - zoomRatio);
-                transform.position -= toCenter.normalized * moveDistance;
-                _zoomTimes--;
-            }
-
-            var moveStep = GetMoveStep();
             if (Input.GetKey(KeyCode.A))
             {
-                transform.position += transform.right * moveStep;
+                transform.position += transform.right * GetMoveStep();
             }
 
             if (Input.GetKey(KeyCode.D))
             {
-                transform.position -= transform.right * moveStep;
+                transform.position -= transform.right * GetMoveStep();
             }
 
             if (Input.GetKey(KeyCode.W))
             {
-                transform.position -= transform.up * moveStep;
+                transform.position -= transform.up * GetMoveStep();
             }
 
             if (Input.GetKey(KeyCode.S))
             {
-                transform.position += transform.up * moveStep;
+                transform.position += transform.up * GetMoveStep();
             }
 
             if (Input.GetMouseButton(1))
@@ -90,28 +96,18 @@ namespace Plugins
         }
 
         /// <summary>
-        /// 恢复脚本初始化时的相机位置，并清空缩放次数。
+        /// 恢复脚本初始化时的相机位置。
         /// </summary>
         public void ResetZoomState()
         {
             transform.position = new Vector3(0, 0, -1);
             transform.rotation = Quaternion.Euler(0f, 0f, 0f);
-            ResetZoomTimes();
-        }
-
-        /// <summary>
-        /// 保留当前相机位置和旋转，只清空缩放次数。
-        /// </summary>
-        public void ResetZoomTimes()
-        {
-            _zoomTimes = 0;
         }
 
         public void SetCameraTransform(Vector3 pos, Vector3 rot)
         {
             _cam.transform.position = new Vector3(pos.x, pos.y, pos.z);
             _cam.transform.rotation = Quaternion.Euler(rot.x, rot.y, rot.z);
-            ResetZoomTimes();
         }
 
         public Vector3 GetMainCameraPostion()
@@ -136,27 +132,11 @@ namespace Plugins
             };
         }
 
-        private static float GetZoomRatio(int lowerLevel)
-        {
-            int count;
-
-            if (lowerLevel >= 0)
-            {
-                count = lowerLevel;
-            }
-            else
-            {
-                count = -lowerLevel - 1;
-            }
-
-            var progress = Mathf.Clamp01(count / (float)(ZoomMaxTimes - 1));
-            return Mathf.SmoothStep(MaxZoomRatio, MinZoomRatio, progress);
-        }
-
         private float GetMoveStep()
         {
-            var zoomRatio = GetZoomRatio(Mathf.Abs(_zoomTimes));
-            return MaxMoveStep * (zoomRatio / MaxZoomRatio);
+            var distanceToCenter = Vector3.Distance(transform.position, ClickEvent.RotationCenter);
+            var normalizedDistance = Mathf.Clamp01(distanceToCenter / MoveFullSpeedDistance);
+            return MaxMoveStep * Mathf.Pow(normalizedDistance, MoveStepFalloffPower);
         }
     }
 }

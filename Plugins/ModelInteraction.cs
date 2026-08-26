@@ -176,7 +176,6 @@ namespace Plugins
             tweener.onComplete = delegate
             {
                 ClickEvent.isMoveAnima = false;
-                cameraController.ResetZoomTimes();
             };
             tweener.onKill = static delegate { };
         }
