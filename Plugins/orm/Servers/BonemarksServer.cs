@@ -206,7 +206,7 @@ namespace Plugins.orm.Servers
             var minValue = 1000000 + Gender * 10000;
             var maxValue = minValue + 10000;
             var allFamily = DB.QueryScalars<string>(
-                "SELECT DISTINCT family FROM info WHERE value>=? AND value<? ORDER BY value",
+                "SELECT family FROM info WHERE value>=? AND value<? GROUP BY family ORDER BY MIN(value)",
                 minValue, maxValue
             );
 
