@@ -56,7 +56,10 @@ namespace Plugins
                 {
                     ModelMoving();
                 }
-                gameController.ClickRespond(transform);
+                else
+                {
+                    gameController.ClickRespond(transform);
+                }
                 // else
                 // {
                 //     string clickModelName = transform.name.Substring(transform.name.LastIndexOf("~") + 1);
