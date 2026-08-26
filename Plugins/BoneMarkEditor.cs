@@ -368,7 +368,7 @@ namespace Plugins
             ignoreRepeating = false;
             _bonemark = null;
 
-            InfomationDisplay("已保存" + (string.IsNullOrEmpty(info) ? "" : $" - 警告: {info}"));
+            InfomationDisplay("已全部保存" + (string.IsNullOrEmpty(info) ? "" : $" - {info}"));
         }
 
         private bool MatchNewOld()
