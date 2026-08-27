@@ -246,5 +246,32 @@ namespace Plugins.orm.Servers
 
             return planeValues.ToArray();
         }
+
+        public string GetFamilyName()
+        {
+            var args = Family.Select(value => (object)value).ToArray();
+
+            var parentResult = DB.Query<Info>(
+                "SELECT name,family FROM info WHERE value IN (" +
+                $"SELECT pval FROM info WHERE value IN ({FamilyPlaceHolders}))",
+                args
+            );
+
+            if (parentResult.Count == 1)
+            {
+                var parent = parentResult[0];
+                var tempFamily = parent.Family.Split(";").Select(int.Parse).ToArray();
+                if (new HashSet<int>(Family).SetEquals(tempFamily))
+                {
+                    return parent.Name;
+                }
+            }
+
+            var childrenResult = DB.Query<Info>(
+                $"SELECT name FROM info WHERE value IN ({FamilyPlaceHolders})",
+                args
+            );
+            return string.Join(";", childrenResult.Select(e => e.Name));
+        }
     }
 }

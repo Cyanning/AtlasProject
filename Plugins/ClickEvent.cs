@@ -323,8 +323,6 @@ namespace Plugins
                     AddObjectClickEvent(childObj);
                 }
             }
-
-            mCamera.GetComponent<MainCameraContraller>().ResetZoomState();
         }
 
         public void SetOrientionPortrait(string isPortrait)

@@ -8,5 +8,6 @@ namespace Plugins.orm.Models
         [Column("value")] public int Value { get; set; }
         [Column("name")] public string Name { get; set; }
         [Column("pval")] public int Pval { get; set; }
+        [Column("family")] public string Family { get; set; }
     }
 }
