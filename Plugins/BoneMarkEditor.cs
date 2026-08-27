@@ -447,7 +447,7 @@ namespace Plugins
             else
             {
                 _cilckedText.color = Color.white;
-                _cilckedText.text = "<无目标点>";
+                _cilckedText.text = "<无目标点位>";
             }
 
             if (HasHistory)
@@ -478,7 +478,12 @@ namespace Plugins
             else
             {
                 _historyText.color = Color.white;
-                _historyText.text = "<新建>";
+                var text = "<新建一个标志点>";
+                if (_boneMarkManager.MarkType > 0)
+                {
+                    text += $"\n当前标志总数：{_bonesData.BonemarksList.Count}";
+                }
+                _historyText.text = text;
             }
         }
 
