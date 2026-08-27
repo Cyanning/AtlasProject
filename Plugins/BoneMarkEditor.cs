@@ -152,6 +152,10 @@ namespace Plugins
             {
                 AddBonemark();
             }
+            else if (Input.GetKeyUp(KeyCode.V))
+            {
+                SwitchBoneFamily(1);
+            }
             else if (Input.GetKeyDown(KeyCode.C))
             {
                 SaveBonemarks();
